@@ -1,8 +1,5 @@
 
-<old_str>import { useState, useEffect, useRef } from "react";
-import { Button } from "@/components/ui/button";
-import { X, ZoomIn, ZoomOut, RotateCw, Download } from "lucide-react";</old_str>
-<new_str>import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { X, ZoomIn, ZoomOut, RotateCw, Download } from "lucide-react";
 
@@ -251,4 +248,4 @@ export function ImageViewer({ isOpen, onClose, imageUrl, imageName }: ImageViewe
       </div>
     </div>
   );
-}</new_str>
+}
