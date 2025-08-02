@@ -151,7 +151,7 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     const content = messageText.trim();
-    if ((!content && !selectedFile) || (!content && content.length > 500) || !otherUserId || !isAuthenticated) return;
+    if ((!content && !selectedFile) || (content && content.length > 500) || !otherUserId || !isAuthenticated) return;
 
     const messageContent = content || (selectedFile ? "📎 File attachment" : "");
     const fileAttachment = selectedFile;
