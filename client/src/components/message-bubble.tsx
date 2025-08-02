@@ -22,23 +22,23 @@ export function MessageBubble({ message, onReply, onEdit, onDelete, onReaction }
   const [editContent, setEditContent] = useState(message.content);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  
+
   const timestamp = new Date(message.timestamp).toLocaleTimeString([], {
     hour: '2-digit',
     minute: '2-digit'
   });
-  const initials = message.senderUsername.toUpperCase().substring(0, 2);
+  const initials = message.senderUsername?.toUpperCase().substring(0, 2) || "";
 
   const handleEditSubmit = async () => {
     if (!onEdit || editContent.trim() === message.content.trim()) {
       setIsEditing(false);
       return;
     }
-    
+
     setIsSubmitting(true);
     const success = await onEdit(message.id, editContent.trim());
     setIsSubmitting(false);
-    
+
     if (success) {
       setIsEditing(false);
     }
@@ -60,13 +60,13 @@ export function MessageBubble({ message, onReply, onEdit, onDelete, onReaction }
 
   const handleDelete = async (e: React.MouseEvent) => {
     if (!onDelete) return;
-    
+
     // If shift key is held, bypass confirmation
     if (e.shiftKey) {
       await onDelete(message.id);
       return;
     }
-    
+
     // Otherwise show confirmation dialog
     setShowDeleteDialog(true);
   };
@@ -79,12 +79,12 @@ export function MessageBubble({ message, onReply, onEdit, onDelete, onReaction }
 
   const handleEmojiSelect = async (emoji: string) => {
     if (!onReaction) return;
-    
+
     // Check if user already reacted with this emoji
     const userReaction = message.reactions?.find(
       r => r.emoji === emoji && r.userId === currentUser?.id
     );
-    
+
     if (userReaction) {
       // Remove reaction
       await onReaction(message.id, emoji, 'remove');
@@ -96,12 +96,12 @@ export function MessageBubble({ message, onReply, onEdit, onDelete, onReaction }
 
   const handleReactionClick = async (emoji: string) => {
     if (!onReaction || !currentUser) return;
-    
+
     // Check if user already reacted with this emoji
     const userReaction = message.reactions?.find(
       r => r.emoji === emoji && r.userId === currentUser.id
     );
-    
+
     if (userReaction) {
       // Remove reaction
       await onReaction(message.id, emoji, 'remove');
@@ -118,21 +118,21 @@ export function MessageBubble({ message, onReply, onEdit, onDelete, onReaction }
           {initials}
         </div>
       )}
-      
+
       <div className={`flex-1 ${isSent ? 'flex flex-col items-end' : ''}`}>
         <div className={`${isSent ? 'bg-sent-message' : 'bg-received-message'} rounded-2xl ${isSent ? 'rounded-tr-md' : 'rounded-tl-md'} px-4 py-3 max-w-xs relative`}>
           {/* Replied message preview */}
           {message.repliedMessage && (
             <div className="mb-2 p-2 bg-gray-100 dark:bg-gray-700 rounded-lg border-l-2 border-gray-300 dark:border-gray-500 text-sm">
               <p className="text-gray-600 dark:text-gray-300 font-medium text-xs mb-1">
-                {message.repliedMessage.senderUsername}
+                {message.repliedMessage?.senderUsername || 'Unknown'}
               </p>
               <p className="text-gray-700 dark:text-gray-200 line-clamp-2">
                 {message.repliedMessage.content}
               </p>
             </div>
           )}
-          
+
           {isEditing ? (
             <div className="space-y-2">
               <Input
@@ -172,7 +172,7 @@ export function MessageBubble({ message, onReply, onEdit, onDelete, onReaction }
                   <span className="text-xs text-gray-400 ml-2">(edited)</span>
                 )}
               </p>
-              
+
               {/* Action buttons */}
               <div className="absolute -right-2 -bottom-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
                 {onReply && (
@@ -249,10 +249,10 @@ export function MessageBubble({ message, onReply, onEdit, onDelete, onReaction }
             })}
           </div>
         )}
-        
+
         <div className="flex items-center space-x-2 mt-1">
           {isSent && <span className="text-xs text-gray-400">{timestamp}</span>}
-          <span className="text-xs text-gray-500">{message.senderUsername}</span>
+          <span className="text-xs text-gray-500">{message.senderUsername || 'Unknown User'}</span>
           {!isSent && <span className="text-xs text-gray-400">{timestamp}</span>}
           {isSent && (
             <div className="flex items-center" title={message.seenAt ? "Seen" : "Delivered"}>
@@ -265,7 +265,7 @@ export function MessageBubble({ message, onReply, onEdit, onDelete, onReaction }
           )}
         </div>
       </div>
-      
+
       {isSent && (
         <div className="w-8 h-8 bg-chat-primary rounded-full flex items-center justify-center text-white text-sm font-medium">
           {initials}
