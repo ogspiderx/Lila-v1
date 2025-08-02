@@ -37,6 +37,10 @@ export function FileAttachment({ onFileSelect, onRemove, selectedFile, disabled 
       formData.append('file', file);
 
       const token = localStorage.getItem('auth_token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+      
       const response = await fetch('/api/upload', {
         method: 'POST',
         headers: {

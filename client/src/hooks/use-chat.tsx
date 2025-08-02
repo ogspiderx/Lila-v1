@@ -15,7 +15,7 @@ export interface Message {
   attachmentName?: string | null;
   attachmentType?: string | null;
   attachmentSize?: string | null;
-  reactions?: Array<{ emoji: string; userId: string; username: string }>;
+  reactions?: Array<{ id: string; emoji: string; userId: string; username: string }>;
   repliedMessage?: {
     id: string;
     content: string;
