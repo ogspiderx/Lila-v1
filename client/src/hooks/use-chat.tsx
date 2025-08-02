@@ -155,9 +155,10 @@ export function useChat() {
             }
             
             if (message.data.isTyping) {
+              // Keep typing indicator active, extend timeout to 5 seconds
               typingTimeoutRef.current = setTimeout(() => {
                 setTypingStatus(null);
-              }, 3000);
+              }, 5000);
             } else {
               setTypingStatus(null);
             }

@@ -19,6 +19,7 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const typingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const currentUser = getStoredUser();
   const token = getStoredToken();
@@ -75,7 +76,15 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
 
   useEffect(() => {
     connect();
-    return () => disconnect();
+    return () => {
+      disconnect();
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      if (typingIntervalRef.current) {
+        clearInterval(typingIntervalRef.current);
+      }
+    };
   }, [connect, disconnect]);
 
   useEffect(() => {
@@ -102,20 +111,32 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
   const handleTyping = (value: string) => {
     setMessageText(value);
 
-    if (!isTyping && value.length > 0 && otherUserId && isAuthenticated) {
-      setIsTyping(true);
-      sendTyping(otherUserId, true);
-    }
+    if (value.length > 0 && otherUserId && isAuthenticated) {
+      if (!isTyping) {
+        setIsTyping(true);
+        sendTyping(otherUserId, true);
+        
+        // Start sending periodic typing updates every 2 seconds
+        typingIntervalRef.current = setInterval(() => {
+          if (otherUserId) {
+            sendTyping(otherUserId, true);
+          }
+        }, 2000);
+      }
 
-    // Clear previous timeout
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
+      // Clear previous timeout
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
 
-    // Set new timeout to stop typing
-    typingTimeoutRef.current = setTimeout(() => {
+      // Set new timeout to stop typing after 3 seconds of inactivity  
+      typingTimeoutRef.current = setTimeout(() => {
+        handleStopTyping();
+      }, 3000);
+    } else if (value.length === 0) {
+      // If input is cleared, immediately stop typing
       handleStopTyping();
-    }, 2000);
+    }
   };
 
   const handleStopTyping = () => {
@@ -125,6 +146,11 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
     }
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = null;
+    }
+    if (typingIntervalRef.current) {
+      clearInterval(typingIntervalRef.current);
+      typingIntervalRef.current = null;
     }
   };
 
