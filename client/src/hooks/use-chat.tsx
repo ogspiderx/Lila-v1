@@ -234,6 +234,11 @@ export function useChat() {
       const token = getStoredToken();
       if (!token || messageIds.length === 0) return;
       
+      // Optimistically update the messages locally first
+      setMessages(prev => prev.map(msg => 
+        messageIds.includes(msg.id) ? { ...msg, seenAt: new Date().toISOString() } : msg
+      ));
+      
       const response = await fetch('/api/messages/mark-seen', {
         method: 'POST',
         headers: {
@@ -247,13 +252,21 @@ export function useChat() {
 
       if (response.ok) {
         console.log('Messages marked as seen:', messageIds.length);
-        // Refresh messages to get updated seen status
-        pollMessages();
+        // Still poll to ensure server state is synchronized
+        setTimeout(() => pollMessages(), 100);
       } else {
         console.error('Failed to mark messages as seen');
+        // Revert optimistic update on failure
+        setMessages(prev => prev.map(msg => 
+          messageIds.includes(msg.id) ? { ...msg, seenAt: null } : msg
+        ));
       }
     } catch (error) {
       console.error('Error marking messages as seen:', error);
+      // Revert optimistic update on error
+      setMessages(prev => prev.map(msg => 
+        messageIds.includes(msg.id) ? { ...msg, seenAt: null } : msg
+      ));
     }
   }, [pollMessages]);
 
