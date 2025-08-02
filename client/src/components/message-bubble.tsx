@@ -1,21 +1,57 @@
 import { Message } from "@/hooks/use-chat";
 import { getStoredUser } from "@/lib/auth";
-import { Reply, Check, CheckCheck } from "lucide-react";
+import { Reply, Check, CheckCheck, Edit3, X, Check as CheckIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useState } from "react";
 
 interface MessageBubbleProps {
   message: Message;
   onReply?: (message: Message) => void;
+  onEdit?: (messageId: string, content: string) => Promise<boolean>;
 }
 
-export function MessageBubble({ message, onReply }: MessageBubbleProps) {
+export function MessageBubble({ message, onReply, onEdit }: MessageBubbleProps) {
   const currentUser = getStoredUser();
   const isSent = message.senderId === currentUser?.id;
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState(message.content);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
   const timestamp = new Date(message.timestamp).toLocaleTimeString([], {
     hour: '2-digit',
     minute: '2-digit'
   });
   const initials = message.senderUsername.toUpperCase().substring(0, 2);
+
+  const handleEditSubmit = async () => {
+    if (!onEdit || editContent.trim() === message.content.trim()) {
+      setIsEditing(false);
+      return;
+    }
+    
+    setIsSubmitting(true);
+    const success = await onEdit(message.id, editContent.trim());
+    setIsSubmitting(false);
+    
+    if (success) {
+      setIsEditing(false);
+    }
+  };
+
+  const handleEditCancel = () => {
+    setEditContent(message.content);
+    setIsEditing(false);
+  };
+
+  const handleEditKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleEditSubmit();
+    } else if (e.key === 'Escape') {
+      handleEditCancel();
+    }
+  };
 
   return (
     <div className={`group flex items-start space-x-3 ${isSent ? 'justify-end' : ''}`}>
@@ -39,18 +75,70 @@ export function MessageBubble({ message, onReply }: MessageBubbleProps) {
             </div>
           )}
           
-          <p className="text-gray-900 break-words">{message.content}</p>
-          
-          {/* Reply button */}
-          {onReply && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="absolute -right-2 -bottom-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 h-6 w-6 bg-white dark:bg-gray-800 border shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700"
-              onClick={() => onReply(message)}
-            >
-              <Reply className="h-3 w-3" />
-            </Button>
+          {isEditing ? (
+            <div className="space-y-2">
+              <Input
+                value={editContent}
+                onChange={(e) => setEditContent(e.target.value)}
+                onKeyDown={handleEditKeyPress}
+                className="text-sm border-gray-300 focus:border-blue-500"
+                disabled={isSubmitting}
+                autoFocus
+              />
+              <div className="flex gap-1 justify-end">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleEditCancel}
+                  disabled={isSubmitting}
+                  className="p-1 h-6 w-6"
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleEditSubmit}
+                  disabled={isSubmitting || editContent.trim() === ''}
+                  className="p-1 h-6 w-6"
+                >
+                  <CheckIcon className="h-3 w-3" />
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <p className="text-gray-900 break-words">
+                {message.content}
+                {message.editedAt && (
+                  <span className="text-xs text-gray-400 ml-2">(edited)</span>
+                )}
+              </p>
+              
+              {/* Action buttons */}
+              <div className="absolute -right-2 -bottom-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                {onReply && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="p-1 h-6 w-6 bg-white dark:bg-gray-800 border shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700"
+                    onClick={() => onReply(message)}
+                  >
+                    <Reply className="h-3 w-3" />
+                  </Button>
+                )}
+                {isSent && onEdit && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="p-1 h-6 w-6 bg-white dark:bg-gray-800 border shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700"
+                    onClick={() => setIsEditing(true)}
+                  >
+                    <Edit3 className="h-3 w-3" />
+                  </Button>
+                )}
+              </div>
+            </>
           )}
         </div>
         

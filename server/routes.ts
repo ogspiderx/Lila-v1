@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
-import { loginSchema, insertMessageSchema } from "@shared/schema";
+import { loginSchema, insertMessageSchema, editMessageSchema } from "@shared/schema";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { z } from "zod";
@@ -270,6 +270,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // PUT route for editing messages
+  app.put("/api/messages/:id", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith("Bearer ")) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const token = authHeader.substring(7);
+      const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+      
+      const messageId = req.params.id;
+      const { content } = editMessageSchema.parse(req.body);
+      
+      // Sanitize content
+      const sanitizedContent = content.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+      
+      const editedMessage = await storage.editMessage(messageId, sanitizedContent, decoded.userId);
+      
+      if (!editedMessage) {
+        return res.status(404).json({ message: "Message not found or not authorized" });
+      }
+
+      const sender = await storage.getUser(decoded.userId);
+      let repliedMessage = null;
+      
+      if (editedMessage.replyToId) {
+        const replied = await storage.getMessageById(editedMessage.replyToId);
+        if (replied) {
+          const repliedSender = await storage.getUser(replied.senderId);
+          repliedMessage = {
+            ...replied,
+            senderUsername: repliedSender?.username || "Unknown",
+          };
+        }
+      }
+      
+      const messageWithUsername = {
+        ...editedMessage,
+        senderUsername: sender?.username || "Unknown",
+        repliedMessage,
+      };
+
+      res.json(messageWithUsername);
+    } catch (error) {
+      console.error('Error editing message:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to edit message" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   // WebSocket server setup
@@ -362,6 +415,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
             type: 'message_sent',
             data: messageWithUsername,
           }));
+        } else if (message.type === 'edit_message' && userId) {
+          // Handle message editing
+          const { messageId, content } = message.data;
+          
+          // Sanitize content
+          const sanitizedContent = content.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+          
+          const editedMessage = await storage.editMessage(messageId, sanitizedContent, userId);
+          
+          if (editedMessage) {
+            const sender = await storage.getUser(userId);
+            let repliedMessage = null;
+            
+            if (editedMessage.replyToId) {
+              const replied = await storage.getMessageById(editedMessage.replyToId);
+              if (replied) {
+                const repliedSender = await storage.getUser(replied.senderId);
+                repliedMessage = {
+                  ...replied,
+                  senderUsername: repliedSender?.username || "Unknown",
+                };
+              }
+            }
+            
+            const messageWithUsername = {
+              ...editedMessage,
+              senderUsername: sender?.username || "Unknown",
+              repliedMessage,
+            };
+
+            // Send to receiver if connected
+            const receiverWs = connections.get(editedMessage.receiverId);
+            if (receiverWs && receiverWs.readyState === WebSocket.OPEN) {
+              receiverWs.send(JSON.stringify({
+                type: 'message_edited',
+                data: messageWithUsername,
+              }));
+            }
+
+            // Send back to sender as confirmation
+            ws.send(JSON.stringify({
+              type: 'message_edited',
+              data: messageWithUsername,
+            }));
+          } else {
+            ws.send(JSON.stringify({
+              type: 'edit_error',
+              message: 'Failed to edit message or not authorized',
+            }));
+          }
         } else if (message.type === 'typing' && userId) {
           // Handle typing indicator
           const { receiverId, isTyping } = message.data;

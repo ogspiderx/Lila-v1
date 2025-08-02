@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type Message, type InsertMessage } from "@shared/schema";
+import { type User, type InsertUser, type Message, type InsertMessage, type EditMessageRequest } from "@shared/schema";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
@@ -6,6 +6,7 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   createMessage(message: InsertMessage & { senderId: string }): Promise<Message>;
+  editMessage(messageId: string, content: string, userId: string): Promise<Message | null>;
   getMessageById(id: string): Promise<Message | undefined>;
   getMessagesBetweenUsers(user1Id: string, user2Id: string): Promise<Message[]>;
   getMessagesBetweenUsersPaginated(user1Id: string, user2Id: string, limit: number, offset: number): Promise<{ messages: Message[], hasMore: boolean }>;
@@ -75,10 +76,35 @@ export class MemStorage implements IStorage {
       replyToId: message.replyToId || null,
       timestamp: new Date(),
       seenAt: null,
+      editedAt: null,
     };
     this.messages.set(id, newMessage);
     console.log('Created message:', newMessage);
     return newMessage;
+  }
+
+  async editMessage(messageId: string, content: string, userId: string): Promise<Message | null> {
+    const message = this.messages.get(messageId);
+    if (!message) {
+      console.log('Message not found:', messageId);
+      return null;
+    }
+
+    // Only allow the sender to edit their own message
+    if (message.senderId !== userId) {
+      console.log('User not authorized to edit message:', messageId, 'user:', userId);
+      return null;
+    }
+
+    const updatedMessage: Message = {
+      ...message,
+      content,
+      editedAt: new Date(),
+    };
+    
+    this.messages.set(messageId, updatedMessage);
+    console.log('Edited message:', messageId, 'new content:', content);
+    return updatedMessage;
   }
 
   async getMessageById(id: string): Promise<Message | undefined> {

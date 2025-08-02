@@ -17,6 +17,7 @@ export const messages = pgTable("messages", {
   replyToId: varchar("reply_to_id"),
   timestamp: timestamp("timestamp").notNull().defaultNow(),
   seenAt: timestamp("seen_at"),
+  editedAt: timestamp("edited_at"),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -37,8 +38,13 @@ export const loginSchema = z.object({
   password: z.string().min(1),
 });
 
+export const editMessageSchema = z.object({
+  content: z.string().min(1).max(1000),
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
 export type Message = typeof messages.$inferSelect;
 export type LoginRequest = z.infer<typeof loginSchema>;
+export type EditMessageRequest = z.infer<typeof editMessageSchema>;
