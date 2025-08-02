@@ -6,7 +6,8 @@ import { MessageBubble } from "@/components/message-bubble";
 import { TypingIndicator } from "@/components/typing-indicator";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Users, LogOut, Wifi, Send, Smile } from "lucide-react";
+import EmojiPicker from "@/components/emoji-picker";
+import { Users, LogOut, Wifi, Send } from "lucide-react";
 
 interface ChatPageProps {
   onLogout: () => void;
@@ -130,6 +131,10 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
     }
   };
 
+  const handleEmojiSelect = (emoji: string) => {
+    setMessageText(prev => prev + emoji);
+  };
+
   const handleLogout = () => {
     disconnect();
     logout();
@@ -210,15 +215,7 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
                   disabled={!isConnected}
                 />
                 
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  title="Add emoji"
-                >
-                  <Smile size={16} />
-                </Button>
+                <EmojiPicker onEmojiSelect={handleEmojiSelect} />
               </div>
               
               <div className="flex justify-between items-center mt-2 px-2">
