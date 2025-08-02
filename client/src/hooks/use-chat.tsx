@@ -6,8 +6,16 @@ export interface Message {
   content: string;
   senderId: string;
   receiverId: string;
+  replyToId?: string;
   timestamp: string;
   senderUsername: string;
+  repliedMessage?: {
+    id: string;
+    content: string;
+    senderId: string;
+    senderUsername: string;
+    timestamp: string;
+  };
 }
 
 export interface TypingStatus {
@@ -125,7 +133,7 @@ export function useChat() {
     setIsConnected(false);
   }, []);
 
-  const sendMessage = useCallback(async (content: string, receiverId: string) => {
+  const sendMessage = useCallback(async (content: string, receiverId: string, replyToId?: string) => {
     try {
       const token = getStoredToken();
       if (!token) return;
@@ -139,6 +147,7 @@ export function useChat() {
         body: JSON.stringify({
           content,
           receiverId,
+          replyToId,
         }),
       });
 

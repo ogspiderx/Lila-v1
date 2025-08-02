@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getStoredUser, getStoredToken, logout } from "@/lib/auth";
-import { useChat } from "@/hooks/use-chat";
+import { useChat, type Message } from "@/hooks/use-chat";
 import { MessageBubble } from "@/components/message-bubble";
 import { TypingIndicator } from "@/components/typing-indicator";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import EmojiPicker from "@/components/emoji-picker";
-import { Users, LogOut, Wifi, Send } from "lucide-react";
+import { Users, LogOut, Wifi, Send, X } from "lucide-react";
 
 interface ChatPageProps {
   onLogout: () => void;
@@ -16,6 +16,7 @@ interface ChatPageProps {
 export default function ChatPage({ onLogout }: ChatPageProps) {
   const [messageText, setMessageText] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -92,8 +93,9 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
     const content = messageText.trim();
     if (!content || content.length > 500 || !otherUserId || !isAuthenticated) return;
 
-    sendMessage(content, otherUserId);
+    sendMessage(content, otherUserId, replyingTo?.id);
     setMessageText("");
+    setReplyingTo(null);
     handleStopTyping();
   };
 
@@ -231,7 +233,11 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
           )}
 
           {messages.map((message) => (
-            <MessageBubble key={message.id} message={message} />
+            <MessageBubble 
+              key={message.id} 
+              message={message} 
+              onReply={setReplyingTo}
+            />
           ))}
 
           {typingStatus && typingStatus.isTyping && (
@@ -241,6 +247,30 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
 
         {/* Message Input */}
         <div className="border-t border-gray-200 bg-white p-4">
+          {/* Reply Preview */}
+          {replyingTo && (
+            <div className="mb-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border-l-4 border-chat-primary">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Replying to {replyingTo.senderUsername}
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
+                    {replyingTo.content}
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="ml-2 p-1 h-6 w-6 hover:bg-gray-200 dark:hover:bg-gray-700"
+                  onClick={() => setReplyingTo(null)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+          
           <form onSubmit={handleSendMessage} className="flex items-end space-x-4">
             <div className="flex-1">
               <div className="relative">

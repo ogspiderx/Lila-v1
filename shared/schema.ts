@@ -14,6 +14,7 @@ export const messages = pgTable("messages", {
   content: text("content").notNull(),
   senderId: varchar("sender_id").notNull().references(() => users.id),
   receiverId: varchar("receiver_id").notNull().references(() => users.id),
+  replyToId: varchar("reply_to_id"),
   timestamp: timestamp("timestamp").notNull().defaultNow(),
 });
 
@@ -25,6 +26,9 @@ export const insertUserSchema = createInsertSchema(users).pick({
 export const insertMessageSchema = createInsertSchema(messages).pick({
   content: true,
   receiverId: true,
+  replyToId: true,
+}).extend({
+  replyToId: z.string().optional(),
 });
 
 export const loginSchema = z.object({

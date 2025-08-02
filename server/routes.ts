@@ -97,13 +97,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const messages = await storage.getMessagesBetweenUsers(currentUser.id, otherUser.id);
       
-      // Include sender username in response
+      // Include sender username and replied message info in response
       const messagesWithUsernames = await Promise.all(
         messages.map(async (message) => {
           const sender = await storage.getUser(message.senderId);
+          let repliedMessage = null;
+          
+          if (message.replyToId) {
+            const replied = await storage.getMessageById(message.replyToId);
+            if (replied) {
+              const repliedSender = await storage.getUser(replied.senderId);
+              repliedMessage = {
+                ...replied,
+                senderUsername: repliedSender?.username || "Unknown",
+              };
+            }
+          }
+          
           return {
             ...message,
             senderUsername: sender?.username || "Unknown",
+            repliedMessage,
           };
         })
       );
@@ -143,13 +157,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { messages, hasMore } = await storage.getMessagesBetweenUsersPaginated(currentUser.id, otherUser.id, limit, offset);
       
-      // Include sender username in response
+      // Include sender username and replied message info in response
       const messagesWithUsernames = await Promise.all(
         messages.map(async (message) => {
           const sender = await storage.getUser(message.senderId);
+          let repliedMessage = null;
+          
+          if (message.replyToId) {
+            const replied = await storage.getMessageById(message.replyToId);
+            if (replied) {
+              const repliedSender = await storage.getUser(replied.senderId);
+              repliedMessage = {
+                ...replied,
+                senderUsername: repliedSender?.username || "Unknown",
+              };
+            }
+          }
+          
           return {
             ...message,
             senderUsername: sender?.username || "Unknown",
+            repliedMessage,
           };
         })
       );
@@ -176,7 +204,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const token = authHeader.substring(7);
       const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
       
-      const { content, receiverId } = insertMessageSchema.parse(req.body);
+      const { content, receiverId, replyToId } = insertMessageSchema.parse(req.body);
       
       // Sanitize content
       const sanitizedContent = content.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
@@ -185,12 +213,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         content: sanitizedContent,
         senderId: decoded.userId,
         receiverId,
+        replyToId,
       });
 
       const sender = await storage.getUser(decoded.userId);
+      let repliedMessage = null;
+      
+      if (newMessage.replyToId) {
+        const replied = await storage.getMessageById(newMessage.replyToId);
+        if (replied) {
+          const repliedSender = await storage.getUser(replied.senderId);
+          repliedMessage = {
+            ...replied,
+            senderUsername: repliedSender?.username || "Unknown",
+          };
+        }
+      }
+      
       const messageWithUsername = {
         ...newMessage,
         senderUsername: sender?.username || "Unknown",
+        repliedMessage,
       };
 
       res.json(messageWithUsername);
@@ -246,7 +289,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         } else if (message.type === 'message' && userId) {
           // Handle new message
-          const { content, receiverId } = insertMessageSchema.parse(message.data);
+          const { content, receiverId, replyToId } = insertMessageSchema.parse(message.data);
           
           // Sanitize content
           const sanitizedContent = content.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
@@ -255,12 +298,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
             content: sanitizedContent,
             senderId: userId,
             receiverId,
+            replyToId,
           });
 
           const sender = await storage.getUser(userId);
+          let repliedMessage = null;
+          
+          if (newMessage.replyToId) {
+            const replied = await storage.getMessageById(newMessage.replyToId);
+            if (replied) {
+              const repliedSender = await storage.getUser(replied.senderId);
+              repliedMessage = {
+                ...replied,
+                senderUsername: repliedSender?.username || "Unknown",
+              };
+            }
+          }
+          
           const messageWithUsername = {
             ...newMessage,
             senderUsername: sender?.username || "Unknown",
+            repliedMessage,
           };
 
           // Send to receiver if connected

@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is a full-stack real-time chat application built with React, Express, and WebSockets. The application provides a modern chat interface with instant messaging capabilities, typing indicators, and user authentication. It features a clean, responsive design using shadcn/ui components and Tailwind CSS.
+This is a full-stack real-time chat application built with React, Express, and WebSockets. The application provides a modern chat interface with instant messaging capabilities, typing indicators, message replies, and user authentication. It features a clean, responsive design using shadcn/ui components and Tailwind CSS.
 
 ## User Preferences
 
@@ -41,6 +41,7 @@ Preferred communication style: Simple, everyday language.
 - **Protocol**: WebSocket connections for instant message delivery and typing indicators
 - **Connection Management**: Server-side connection tracking with user mapping
 - **Message Types**: Structured message protocol for different event types (auth, messages, typing)
+- **Reply System**: Messages can reference and reply to previous messages with contextual preview
 - **Fallback**: Graceful degradation with automatic reconnection handling
 
 ## External Dependencies

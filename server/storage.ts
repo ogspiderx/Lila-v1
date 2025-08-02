@@ -6,6 +6,7 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   createMessage(message: InsertMessage & { senderId: string }): Promise<Message>;
+  getMessageById(id: string): Promise<Message | undefined>;
   getMessagesBetweenUsers(user1Id: string, user2Id: string): Promise<Message[]>;
   getMessagesBetweenUsersPaginated(user1Id: string, user2Id: string, limit: number, offset: number): Promise<{ messages: Message[], hasMore: boolean }>;
   initializeUsers(): Promise<void>;
@@ -69,11 +70,16 @@ export class MemStorage implements IStorage {
       content: message.content,
       senderId: message.senderId,
       receiverId: message.receiverId,
+      replyToId: message.replyToId || null,
       timestamp: new Date(),
     };
     this.messages.set(id, newMessage);
     console.log('Created message:', newMessage);
     return newMessage;
+  }
+
+  async getMessageById(id: string): Promise<Message | undefined> {
+    return this.messages.get(id);
   }
 
   async getMessagesBetweenUsers(user1Id: string, user2Id: string): Promise<Message[]> {
