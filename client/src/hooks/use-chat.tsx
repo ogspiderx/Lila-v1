@@ -234,10 +234,17 @@ export function useChat() {
       const token = getStoredToken();
       if (!token || messageIds.length === 0) return;
       
+      console.log('Marking messages as seen:', messageIds);
+      
       // Optimistically update the messages locally first
-      setMessages(prev => prev.map(msg => 
-        messageIds.includes(msg.id) ? { ...msg, seenAt: new Date().toISOString() } : msg
-      ));
+      const currentTime = new Date().toISOString();
+      setMessages(prev => {
+        const updated = prev.map(msg => 
+          messageIds.includes(msg.id) ? { ...msg, seenAt: currentTime } : msg
+        );
+        console.log('Optimistically updated messages:', updated.filter(m => messageIds.includes(m.id)));
+        return updated;
+      });
       
       const response = await fetch('/api/messages/mark-seen', {
         method: 'POST',
@@ -251,9 +258,13 @@ export function useChat() {
       });
 
       if (response.ok) {
-        console.log('Messages marked as seen:', messageIds.length);
-        // Still poll to ensure server state is synchronized
-        setTimeout(() => pollMessages(), 100);
+        console.log('Messages marked as seen on server:', messageIds.length);
+        // Force a re-render by updating state again with server confirmation
+        setTimeout(() => {
+          setMessages(prev => prev.map(msg => 
+            messageIds.includes(msg.id) ? { ...msg, seenAt: currentTime } : msg
+          ));
+        }, 50);
       } else {
         console.error('Failed to mark messages as seen');
         // Revert optimistic update on failure
@@ -268,7 +279,7 @@ export function useChat() {
         messageIds.includes(msg.id) ? { ...msg, seenAt: null } : msg
       ));
     }
-  }, [pollMessages]);
+  }, []);
 
   const sendTyping = useCallback((receiverId: string, isTyping: boolean) => {
     // Send typing indicator via existing WebSocket connection
