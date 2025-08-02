@@ -133,15 +133,29 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
   }, [messages, currentUser, markMessagesAsSeen]);
 
   useEffect(() => {
-    // Only force scroll to bottom when typing status changes (someone starts/stops typing)
-    // For regular message updates, let scrollToBottom decide based on user's current position
-    if (typingStatus) {
-      scrollToBottom(); // Auto-scroll only if near bottom
-    } else {
-      scrollToBottom(); // Auto-scroll only if near bottom
+    // Only auto-scroll when typing status changes (someone starts/stops typing)
+    // Don't auto-scroll on regular message updates to preserve user's scroll position
+    if (typingStatus && typingStatus.isTyping) {
+      scrollToBottom(); // Auto-scroll only if near bottom when someone is typing
     }
     console.log('CHAT PAGE: Messages or typing changed, current messages:', messages.length);
-  }, [messages, typingStatus, forceUpdate]);
+  }, [typingStatus]); // Removed messages and forceUpdate from dependencies
+
+  // Auto-scroll only when new messages arrive and user is near bottom
+  useEffect(() => {
+    if (messages.length > 0) {
+      // Check if user is near bottom before auto-scrolling
+      if (messagesContainerRef.current) {
+        const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+        const isNearBottom = scrollTop + clientHeight >= scrollHeight - 100;
+        
+        // Only auto-scroll if user is near bottom
+        if (isNearBottom) {
+          scrollToBottom(true);
+        }
+      }
+    }
+  }, [messages.length]); // Only trigger when message count changes, not on every update
 
   // Debug effect to log message seen status changes
   useEffect(() => {
