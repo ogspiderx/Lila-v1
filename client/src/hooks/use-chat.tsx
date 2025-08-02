@@ -36,7 +36,7 @@ export function useChat() {
   const wsRef = useRef<WebSocket | null>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Poll for new messages every 2 seconds (only checks for new messages, not full reload)
+  // Poll for new messages every 1 second (aggressive refresh for immediate UI updates)  
   const pollMessages = useCallback(async () => {
     try {
       const token = getStoredToken();
@@ -50,11 +50,11 @@ export function useChat() {
       if (response.ok) {
         const allMessages = await response.json();
         
-        // Only update if we have new messages (to avoid unnecessary re-renders)
-        if (allMessages.length !== lastMessageCount.current) {
-          setMessages(allMessages);
-          lastMessageCount.current = allMessages.length;
-        }
+        // Always update messages to ensure UI reflects latest state (including seen status)
+        setMessages(allMessages);
+        lastMessageCount.current = allMessages.length;
+        setForceUpdate(prev => prev + 1);
+        console.log('GUI REFRESHED: Messages updated from server', allMessages.length);
       }
     } catch (error) {
       console.error('Error polling messages:', error);
@@ -122,11 +122,11 @@ export function useChat() {
     // Load initial messages with pagination
     loadInitialMessages();
     
-    // Start polling every 2 seconds for new messages
+    // Start polling every 1 second for immediate GUI updates
     if (pollingRef.current) {
       clearInterval(pollingRef.current);
     }
-    pollingRef.current = setInterval(pollMessages, 2000);
+    pollingRef.current = setInterval(pollMessages, 1000);
     
     // Establish WebSocket connection for typing indicators
     try {
@@ -249,27 +249,6 @@ export function useChat() {
       
       console.log('Marking messages as seen:', messageIds);
       
-      const currentTime = new Date().toISOString();
-      
-      // Multiple approaches to force UI update
-      const updateMessages = (updateFn: (prev: Message[]) => Message[]) => {
-        setMessages(updateFn);
-        setForceUpdate(prev => prev + 1);
-      };
-      
-      // Immediate optimistic update with multiple force mechanisms
-      updateMessages(prev => {
-        const newMessages = prev.map(msg => 
-          messageIds.includes(msg.id) ? { ...msg, seenAt: currentTime } : msg
-        );
-        console.log('FORCE UPDATE: Messages updated with seen status');
-        return newMessages;
-      });
-      
-      // Also force a state change on a different state variable to trigger re-render
-      setTimeout(() => setForceUpdate(prev => prev + 1), 50);
-      setTimeout(() => setForceUpdate(prev => prev + 1), 100);
-      
       const response = await fetch('/api/messages/mark-seen', {
         method: 'POST',
         headers: {
@@ -283,23 +262,16 @@ export function useChat() {
 
       if (response.ok) {
         console.log('Messages marked as seen on server:', messageIds.length);
-        // Force another update after server confirmation
-        setForceUpdate(prev => prev + 1);
+        // Immediately poll for fresh data to update GUI
+        setTimeout(() => pollMessages(), 50);
+        setTimeout(() => pollMessages(), 200);
       } else {
         console.error('Failed to mark messages as seen');
-        // Revert optimistic update on failure
-        updateMessages(prev => prev.map(msg => 
-          messageIds.includes(msg.id) ? { ...msg, seenAt: null } : msg
-        ));
       }
     } catch (error) {
       console.error('Error marking messages as seen:', error);
-      // Revert optimistic update on error
-      updateMessages(prev => prev.map(msg => 
-        messageIds.includes(msg.id) ? { ...msg, seenAt: null } : msg
-      ));
     }
-  }, []);
+  }, [pollMessages]);
 
   const sendTyping = useCallback((receiverId: string, isTyping: boolean) => {
     // Send typing indicator via existing WebSocket connection
