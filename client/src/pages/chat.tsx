@@ -88,7 +88,7 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
     };
   }, [connect, disconnect]);
 
-  // Mark messages as seen when tab gets focus
+  // Mark messages as seen when tab gets focus or new messages arrive
   useEffect(() => {
     const handleTabFocus = () => {
       if (messages.length > 0 && currentUser) {
@@ -104,6 +104,11 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
         }
       }
     };
+
+    // Mark messages as seen immediately when new messages arrive or page loads
+    if (!document.hidden) {
+      handleTabFocus();
+    }
 
     window.addEventListener('focus', handleTabFocus);
     document.addEventListener('visibilitychange', () => {
@@ -122,21 +127,7 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
     scrollToBottom();
   }, [messages, typingStatus]);
 
-  // Mark received messages as seen when they appear
-  useEffect(() => {
-    if (messages.length > 0 && currentUser) {
-      const unseenReceivedMessages = messages.filter(msg => 
-        msg.receiverId === currentUser.id && 
-        msg.senderId !== currentUser.id && 
-        !msg.seenAt
-      );
-      
-      if (unseenReceivedMessages.length > 0) {
-        const messageIds = unseenReceivedMessages.map(msg => msg.id);
-        markMessagesAsSeen(messageIds);
-      }
-    }
-  }, [messages, currentUser, markMessagesAsSeen]);
+  
 
   const scrollToBottom = () => {
     if (messagesContainerRef.current) {
