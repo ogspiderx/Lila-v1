@@ -88,6 +88,36 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
     };
   }, [connect, disconnect]);
 
+  // Mark messages as seen when tab gets focus
+  useEffect(() => {
+    const handleTabFocus = () => {
+      if (messages.length > 0 && currentUser) {
+        const unseenReceivedMessages = messages.filter(msg => 
+          msg.receiverId === currentUser.id && 
+          msg.senderId !== currentUser.id && 
+          !msg.seenAt
+        );
+        
+        if (unseenReceivedMessages.length > 0) {
+          const messageIds = unseenReceivedMessages.map(msg => msg.id);
+          markMessagesAsSeen(messageIds);
+        }
+      }
+    };
+
+    window.addEventListener('focus', handleTabFocus);
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        handleTabFocus();
+      }
+    });
+
+    return () => {
+      window.removeEventListener('focus', handleTabFocus);
+      document.removeEventListener('visibilitychange', handleTabFocus);
+    };
+  }, [messages, currentUser, markMessagesAsSeen]);
+
   useEffect(() => {
     scrollToBottom();
   }, [messages, typingStatus]);
