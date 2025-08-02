@@ -114,6 +114,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // GET route for paginated messages
+  app.get("/api/messages/paginated", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith("Bearer ")) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const token = authHeader.substring(7);
+      const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+      
+      // Parse pagination parameters
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 50); // Max 50 messages per request
+      const offset = parseInt(req.query.offset as string) || 0;
+      
+      // Get the other user
+      const currentUser = await storage.getUser(decoded.userId);
+      if (!currentUser) {
+        return res.status(401).json({ message: "User not found" });
+      }
+
+      const otherUsername = currentUser.username === "user1" ? "user2" : "user1";
+      const otherUser = await storage.getUserByUsername(otherUsername);
+      if (!otherUser) {
+        return res.status(404).json({ message: "Other user not found" });
+      }
+
+      const { messages, hasMore } = await storage.getMessagesBetweenUsersPaginated(currentUser.id, otherUser.id, limit, offset);
+      
+      // Include sender username in response
+      const messagesWithUsernames = await Promise.all(
+        messages.map(async (message) => {
+          const sender = await storage.getUser(message.senderId);
+          return {
+            ...message,
+            senderUsername: sender?.username || "Unknown",
+          };
+        })
+      );
+
+      res.json({ 
+        messages: messagesWithUsernames,
+        hasMore,
+        limit,
+        offset
+      });
+    } catch (error) {
+      res.status(401).json({ message: "Invalid token" });
+    }
+  });
+
   // POST route for sending messages via HTTP
   app.post("/api/messages", async (req, res) => {
     try {

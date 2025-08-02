@@ -27,10 +27,13 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
     isAuthenticated,
     messages,
     typingStatus,
+    hasMoreMessages,
+    isLoadingMore,
     connect,
     disconnect,
     sendMessage,
     sendTyping,
+    loadMoreMessages,
   } = useChat();
 
   // Fetch other user info
@@ -135,6 +138,25 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
     setMessageText(prev => prev + emoji);
   };
 
+  // Handle scroll to detect when user scrolls to top to load more messages
+  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop } = e.currentTarget;
+    
+    // If user scrolls to within 100px of the top and there are more messages to load
+    if (scrollTop < 100 && hasMoreMessages && !isLoadingMore) {
+      // Store current scroll height to restore position after loading
+      const currentScrollHeight = e.currentTarget.scrollHeight;
+      
+      loadMoreMessages().then(() => {
+        // Restore scroll position after new messages are loaded
+        if (messagesContainerRef.current) {
+          const newScrollHeight = messagesContainerRef.current.scrollHeight;
+          messagesContainerRef.current.scrollTop = newScrollHeight - currentScrollHeight;
+        }
+      });
+    }
+  }, [hasMoreMessages, isLoadingMore, loadMoreMessages]);
+
   const handleLogout = () => {
     disconnect();
     logout();
@@ -188,8 +210,26 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
       <main className="flex-1 max-w-4xl mx-auto">
         <div 
           ref={messagesContainerRef}
+          onScroll={handleScroll}
           className="h-[calc(100vh-140px)] overflow-y-auto p-4 space-y-4"
         >
+          {/* Loading indicator for older messages */}
+          {isLoadingMore && (
+            <div className="flex justify-center py-4">
+              <div className="flex items-center space-x-2 text-gray-500">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-chat-primary"></div>
+                <span className="text-sm">Loading older messages...</span>
+              </div>
+            </div>
+          )}
+          
+          {/* No more messages indicator */}
+          {!hasMoreMessages && messages.length > 0 && (
+            <div className="flex justify-center py-2">
+              <span className="text-xs text-gray-400">Beginning of conversation</span>
+            </div>
+          )}
+
           {messages.map((message) => (
             <MessageBubble key={message.id} message={message} />
           ))}
