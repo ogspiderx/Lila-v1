@@ -53,6 +53,10 @@ This is a modern, full-stack real-time chat application that demonstrates the po
 - Fixed authentication token key mismatch between auth system ('chat_token') and file upload component
 - File upload button appears next to send button, with file preview when selected
 - Supports sending files with optional message text
+- Expanded file type support: images, documents, PDFs, archives, audio, video, code files, and more
+- Increased file size limit from 10MB to 300MB for larger file sharing
+- Increased chat character limit from 500 to 5000 characters for longer messages
+- Enhanced file type detection with appropriate icons (music, video, archive, code, etc.)
 
 ## System Architecture
 

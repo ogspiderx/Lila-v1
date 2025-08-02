@@ -36,23 +36,42 @@ const storage_multer = multer.diskStorage({
 const upload = multer({
   storage: storage_multer,
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB limit
+    fileSize: 300 * 1024 * 1024, // 300MB limit
   },
   fileFilter: (req, file, cb) => {
-    // Allow images, documents, and text files
+    // Allow a wide variety of file types
     const allowedTypes = [
-      'image/jpeg', 'image/png', 'image/gif', 'image/webp',
-      'application/pdf', 'application/msword', 
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'text/plain', 'text/csv',
-      'application/vnd.ms-excel',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      // Images
+      'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/bmp', 'image/webp', 'image/svg+xml', 'image/tiff', 'image/x-icon',
+      // Documents
+      'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain', 'text/rtf', 'text/csv', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      'application/vnd.oasis.opendocument.text', 'application/vnd.oasis.opendocument.spreadsheet', 'application/vnd.oasis.opendocument.presentation',
+      // Archives
+      'application/zip', 'application/x-rar-compressed', 'application/x-7z-compressed', 'application/x-tar', 'application/gzip',
+      'application/x-compressed', 'application/x-zip-compressed',
+      // Audio
+      'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/flac', 'audio/aac', 'audio/ogg', 'audio/x-m4a',
+      // Video
+      'video/mp4', 'video/avi', 'video/quicktime', 'video/x-ms-wmv', 'video/x-flv', 'video/x-matroska', 'video/webm', 'video/x-msvideo',
+      // Code/Text files
+      'application/javascript', 'text/javascript', 'application/json', 'application/xml', 'text/xml', 'text/yaml', 'text/markdown',
+      'text/x-python', 'text/x-java-source', 'text/x-c', 'text/x-php', 'text/x-ruby', 'text/html', 'text/css',
+      // Other common formats
+      'application/octet-stream', 'application/x-executable', 'application/x-binary'
     ];
     
-    if (allowedTypes.includes(file.mimetype)) {
+    // Check file extension as backup for octet-stream files
+    const allowedExtensions = /\.(jpg|jpeg|png|gif|bmp|webp|svg|tiff|ico|pdf|doc|docx|txt|rtf|csv|xls|xlsx|ppt|pptx|odt|ods|odp|zip|rar|7z|tar|gz|mp3|wav|flac|aac|ogg|m4a|mp4|avi|mov|wmv|flv|mkv|webm|js|ts|tsx|jsx|html|css|json|xml|yaml|yml|md|py|java|cpp|c|h|php|rb|go|rs|swift|kt|scala|sql|sh|bat|ps1|log|ini|cfg|conf|env|exe|dmg|app)$/i;
+    
+    const mimetypeAllowed = allowedTypes.includes(file.mimetype) || file.mimetype.startsWith('text/');
+    const extensionAllowed = allowedExtensions.test(file.originalname);
+    
+    if (mimetypeAllowed || extensionAllowed) {
       cb(null, true);
     } else {
-      cb(new Error('Invalid file type. Only images, PDFs, documents, and text files are allowed.'));
+      cb(new Error('File type not supported. Please contact support if you need this file type enabled.'));
     }
   }
 });

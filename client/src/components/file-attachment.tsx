@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Upload, X, File, Image, FileText, Download } from "lucide-react";
+import { Upload, X, File, Image, FileText, Download, Music, Video, Archive, Code } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ImageViewer } from "@/components/image-viewer";
 import { LazyImage } from "@/components/lazy-image";
@@ -22,11 +22,11 @@ export function FileAttachment({ onFileSelect, onRemove, selectedFile, disabled 
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Check file size (10MB limit)
-    if (file.size > 10 * 1024 * 1024) {
+    // Check file size (300MB limit)
+    if (file.size > 300 * 1024 * 1024) {
       toast({
         title: "File too large",
-        description: "Please select a file smaller than 10MB",
+        description: "Please select a file smaller than 300MB",
         variant: "destructive",
       });
       return;
@@ -78,10 +78,21 @@ export function FileAttachment({ onFileSelect, onRemove, selectedFile, disabled 
     }
   };
 
-  const getFileIcon = (type: string) => {
+  const getFileIcon = (type: string, fileName?: string) => {
+    // Get file extension for better detection
+    const extension = fileName ? fileName.split('.').pop()?.toLowerCase() : '';
+    
     if (type.startsWith('image/')) {
       return <Image size={16} className="text-blue-500" />;
-    } else if (type === 'application/pdf' || type.includes('document')) {
+    } else if (type.startsWith('audio/') || ['mp3', 'wav', 'flac', 'aac', 'ogg', 'm4a'].includes(extension || '')) {
+      return <Music size={16} className="text-green-500" />;
+    } else if (type.startsWith('video/') || ['mp4', 'avi', 'mov', 'wmv', 'flv', 'mkv', 'webm'].includes(extension || '')) {
+      return <Video size={16} className="text-purple-500" />;
+    } else if (type.includes('zip') || type.includes('rar') || type.includes('tar') || type.includes('compressed') || ['zip', 'rar', '7z', 'tar', 'gz'].includes(extension || '')) {
+      return <Archive size={16} className="text-orange-500" />;
+    } else if (type.includes('javascript') || type.includes('json') || type.includes('xml') || ['js', 'ts', 'tsx', 'jsx', 'html', 'css', 'json', 'xml', 'yaml', 'yml', 'md', 'py', 'java', 'cpp', 'c', 'h', 'php', 'rb', 'go', 'rs', 'swift', 'kt', 'scala', 'sql', 'sh', 'bat'].includes(extension || '')) {
+      return <Code size={16} className="text-indigo-500" />;
+    } else if (type === 'application/pdf' || type.includes('document') || ['pdf', 'doc', 'docx', 'txt', 'rtf'].includes(extension || '')) {
       return <FileText size={16} className="text-red-500" />;
     } else {
       return <File size={16} className="text-gray-500" />;
@@ -91,7 +102,7 @@ export function FileAttachment({ onFileSelect, onRemove, selectedFile, disabled 
   if (selectedFile) {
     return (
       <div className="flex items-center gap-2 p-2 bg-gray-100 rounded-lg border">
-        {getFileIcon(selectedFile.type)}
+        {getFileIcon(selectedFile.type, selectedFile.name)}
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-gray-900 truncate">
             {selectedFile.name}
@@ -118,7 +129,7 @@ export function FileAttachment({ onFileSelect, onRemove, selectedFile, disabled 
         ref={fileInputRef}
         type="file"
         onChange={handleFileSelect}
-        accept="image/*,application/pdf,.doc,.docx,.txt,.csv,.xls,.xlsx"
+        accept="image/*,application/pdf,.doc,.docx,.txt,.rtf,.csv,.xls,.xlsx,.ppt,.pptx,.odt,.ods,.odp,.zip,.rar,.7z,.tar,.gz,.mp3,.wav,.flac,.aac,.ogg,.m4a,.mp4,.avi,.mov,.wmv,.flv,.mkv,.webm,.js,.ts,.tsx,.jsx,.html,.css,.json,.xml,.yaml,.yml,.md,.py,.java,.cpp,.c,.h,.php,.rb,.go,.rs,.swift,.kt,.scala,.sql,.sh,.bat,.ps1,.log,.ini,.cfg,.conf,.env"
         className="hidden"
         disabled={disabled || uploading}
       />
@@ -198,13 +209,7 @@ export function FileDisplay({ attachment }: FileDisplayProps) {
   return (
     <div className="mt-2 max-w-sm">
       <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg border hover:bg-gray-100 transition-colors cursor-pointer" onClick={handleDownload}>
-        {attachment.type === 'application/pdf' ? (
-          <FileText size={20} className="text-red-500" />
-        ) : attachment.type.includes('document') ? (
-          <FileText size={20} className="text-blue-500" />
-        ) : (
-          <File size={20} className="text-gray-500" />
-        )}
+        {getFileIcon(attachment.type, attachment.name)}
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-gray-900 truncate">
             {attachment.name}

@@ -151,7 +151,7 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     const content = messageText.trim();
-    if ((!content && !selectedFile) || (content && content.length > 500) || !otherUserId || !isAuthenticated) return;
+    if ((!content && !selectedFile) || (content && content.length > 5000) || !otherUserId || !isAuthenticated) return;
 
     const messageContent = content || (selectedFile ? "📎 File attachment" : "");
     const fileAttachment = selectedFile;
@@ -212,7 +212,7 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      if (messageText.trim() && messageText.length <= 500) {
+      if ((messageText.trim() || selectedFile) && messageText.length <= 5000) {
         handleSendMessage(e);
       }
     }
@@ -254,7 +254,7 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
   };
 
   const charCount = messageText.length;
-  const isDisabled = (!messageText.trim() && !selectedFile) || charCount > 500 || !isConnected || !isAuthenticated || !otherUserId;
+  const isDisabled = (!messageText.trim() && !selectedFile) || charCount > 5000 || !isConnected || !isAuthenticated || !otherUserId;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -392,7 +392,7 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
 
                 <div className="flex justify-between items-center mt-2 px-2">
                   <div className="text-xs text-gray-400">
-                    <span className={charCount > 500 ? 'text-red-500' : ''}>{charCount}</span>/500
+                    <span className={charCount > 5000 ? 'text-red-500' : ''}>{charCount}</span>/5000
                   </div>
                   <div className="text-xs text-gray-400">
                     Press Enter to send, Shift+Enter for new line
