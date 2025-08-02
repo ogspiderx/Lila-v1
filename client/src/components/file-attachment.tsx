@@ -165,6 +165,27 @@ export function FileDisplay({ attachment }: FileDisplayProps) {
   const [isViewerOpen, setIsViewerOpen] = useState(false);
   const isImage = attachment.type.startsWith('image/');
 
+  const getFileIcon = (type: string, fileName?: string) => {
+    // Get file extension for better detection
+    const extension = fileName ? fileName.split('.').pop()?.toLowerCase() : '';
+    
+    if (type.startsWith('image/')) {
+      return <Image size={20} className="text-blue-500" />;
+    } else if (type.startsWith('audio/') || ['mp3', 'wav', 'flac', 'aac', 'ogg', 'm4a'].includes(extension || '')) {
+      return <Music size={20} className="text-green-500" />;
+    } else if (type.startsWith('video/') || ['mp4', 'avi', 'mov', 'wmv', 'flv', 'mkv', 'webm'].includes(extension || '')) {
+      return <Video size={20} className="text-purple-500" />;
+    } else if (type.includes('zip') || type.includes('rar') || type.includes('tar') || type.includes('compressed') || ['zip', 'rar', '7z', 'tar', 'gz'].includes(extension || '')) {
+      return <Archive size={20} className="text-orange-500" />;
+    } else if (type.includes('javascript') || type.includes('json') || type.includes('xml') || ['js', 'ts', 'tsx', 'jsx', 'html', 'css', 'json', 'xml', 'yaml', 'yml', 'md', 'py', 'java', 'cpp', 'c', 'h', 'php', 'rb', 'go', 'rs', 'swift', 'kt', 'scala', 'sql', 'sh', 'bat'].includes(extension || '')) {
+      return <Code size={20} className="text-indigo-500" />;
+    } else if (type === 'application/pdf' || type.includes('document') || ['pdf', 'doc', 'docx', 'txt', 'rtf'].includes(extension || '')) {
+      return <FileText size={20} className="text-red-500" />;
+    } else {
+      return <File size={20} className="text-gray-500" />;
+    }
+  };
+
   const handleDownload = () => {
     const link = document.createElement('a');
     link.href = attachment.url;
