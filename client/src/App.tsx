@@ -14,8 +14,34 @@ function Router() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    setAuthenticated(isAuthenticated());
-    setIsLoading(false);
+    // Check if we need to clear old authentication data
+    const checkAuthStatus = async () => {
+      const token = localStorage.getItem('chat_token');
+      if (token) {
+        // Test the token with a quick API call
+        try {
+          const response = await fetch('/api/users/other', {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (!response.ok) {
+            // Token is invalid, clear it
+            localStorage.clear();
+            setAuthenticated(false);
+          } else {
+            setAuthenticated(isAuthenticated());
+          }
+        } catch {
+          // Network error or invalid token
+          localStorage.clear();
+          setAuthenticated(false);
+        }
+      } else {
+        setAuthenticated(isAuthenticated());
+      }
+      setIsLoading(false);
+    };
+    
+    checkAuthStatus();
   }, []);
 
   const handleLoginSuccess = () => {

@@ -50,5 +50,12 @@ export function logout(): void {
 export function isAuthenticated(): boolean {
   const token = getStoredToken();
   const user = getStoredUser();
-  return !!(token && user);
+  
+  // Validate that we have both token and user, and user has expected format
+  if (!token || !user || !user.id || !user.username) {
+    clearAuthData(); // Clear invalid data
+    return false;
+  }
+  
+  return true;
 }

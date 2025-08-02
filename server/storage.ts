@@ -20,23 +20,28 @@ export class MemStorage implements IStorage {
   }
 
   async initializeUsers(): Promise<void> {
+    // Only initialize if users don't exist
+    if (this.users.size > 0) return;
+    
     // Create default users with hashed passwords (in real app, these would be pre-hashed)
     const bcrypt = await import('bcrypt');
     
     const user1: User = {
-      id: randomUUID(),
+      id: "user1-id", // Fixed ID for consistency
       username: "user1",
       password: await bcrypt.hash("password123", 10)
     };
     
     const user2: User = {
-      id: randomUUID(),
+      id: "user2-id", // Fixed ID for consistency
       username: "user2", 
       password: await bcrypt.hash("password456", 10)
     };
 
     this.users.set(user1.id, user1);
     this.users.set(user2.id, user2);
+    
+    console.log('Initialized users:', Array.from(this.users.keys()));
   }
 
   async getUser(id: string): Promise<User | undefined> {

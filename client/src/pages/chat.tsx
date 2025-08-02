@@ -23,6 +23,7 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
   
   const {
     isConnected,
+    isAuthenticated,
     messages,
     setMessages,
     typingStatus,
@@ -31,6 +32,21 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
     sendMessage,
     sendTypingStatus,
   } = useWebSocket();
+
+  // Fetch other user info
+  const { data: otherUser } = useQuery({
+    queryKey: ["/api/users/other"],
+    queryFn: async () => {
+      const response = await fetch("/api/users/other", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!response.ok) throw new Error("Failed to fetch other user");
+      return response.json();
+    },
+    enabled: !!token,
+  });
 
   // Fetch initial messages
   const { data: initialMessages } = useQuery({
@@ -48,8 +64,8 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
   });
 
   // Get other user info
-  const otherUsername = currentUser?.username === "user1" ? "user2" : "user1";
-  const otherUserId = currentUser?.username === "user1" ? "user2-id" : "user1-id"; // This would be real IDs in production
+  const otherUsername = otherUser?.username || (currentUser?.username === "user1" ? "user2" : "user1");
+  const otherUserId = otherUser?.id;
 
   useEffect(() => {
     if (initialMessages) {
@@ -75,16 +91,9 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     const content = messageText.trim();
-    if (!content || content.length > 500) return;
+    if (!content || content.length > 500 || !otherUserId || !isAuthenticated) return;
 
-    // Find other user ID from messages or use fallback
-    let receiverId = otherUserId;
-    if (initialMessages && initialMessages.length > 0) {
-      const lastMessage = initialMessages[initialMessages.length - 1];
-      receiverId = lastMessage.senderId === currentUser?.id ? lastMessage.receiverId : lastMessage.senderId;
-    }
-
-    sendMessage(content, receiverId);
+    sendMessage(content, otherUserId);
     setMessageText("");
     handleStopTyping();
   };
@@ -92,15 +101,9 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
   const handleTyping = (value: string) => {
     setMessageText(value);
     
-    if (!isTyping && value.length > 0) {
+    if (!isTyping && value.length > 0 && otherUserId && isAuthenticated) {
       setIsTyping(true);
-      // Find other user ID for typing indicator
-      let receiverId = otherUserId;
-      if (initialMessages && initialMessages.length > 0) {
-        const lastMessage = initialMessages[initialMessages.length - 1];
-        receiverId = lastMessage.senderId === currentUser?.id ? lastMessage.receiverId : lastMessage.senderId;
-      }
-      sendTypingStatus(receiverId, true);
+      sendTypingStatus(otherUserId, true);
     }
 
     // Clear previous timeout
@@ -115,14 +118,9 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
   };
 
   const handleStopTyping = () => {
-    if (isTyping) {
+    if (isTyping && otherUserId && isAuthenticated) {
       setIsTyping(false);
-      let receiverId = otherUserId;
-      if (initialMessages && initialMessages.length > 0) {
-        const lastMessage = initialMessages[initialMessages.length - 1];
-        receiverId = lastMessage.senderId === currentUser?.id ? lastMessage.receiverId : lastMessage.senderId;
-      }
-      sendTypingStatus(receiverId, false);
+      sendTypingStatus(otherUserId, false);
     }
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
@@ -145,7 +143,7 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
   };
 
   const charCount = messageText.length;
-  const isDisabled = !messageText.trim() || charCount > 500 || !isConnected;
+  const isDisabled = !messageText.trim() || charCount > 500 || !isConnected || !isAuthenticated || !otherUserId;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -161,9 +159,9 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
             <div>
               <h2 className="font-semibold text-gray-900">{currentUser?.username}</h2>
               <div className="flex items-center space-x-2">
-                <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                <div className={`w-2 h-2 rounded-full ${isConnected && isAuthenticated ? 'bg-green-500' : 'bg-red-500'}`}></div>
                 <span className="text-sm text-gray-500">
-                  {isConnected ? 'Connected' : 'Disconnected'}
+                  {isConnected && isAuthenticated ? 'Ready' : isConnected ? 'Connecting...' : 'Disconnected'}
                 </span>
               </div>
             </div>
@@ -256,6 +254,14 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
           <div className="flex items-center space-x-2">
             <Wifi className="text-red-200" size={16} />
             <span>Connection lost. Attempting to reconnect...</span>
+          </div>
+        </div>
+      )}
+      {isConnected && !isAuthenticated && (
+        <div className="fixed top-4 right-4 bg-yellow-500 text-white px-4 py-2 rounded-lg shadow-lg z-50">
+          <div className="flex items-center space-x-2">
+            <Wifi className="text-yellow-200" size={16} />
+            <span>Authenticating...</span>
           </div>
         </div>
       )}

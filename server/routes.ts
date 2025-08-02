@@ -45,6 +45,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get messages endpoint
+  // Get other user info endpoint
+  app.get("/api/users/other", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith("Bearer ")) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const token = authHeader.substring(7);
+      const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+      
+      const currentUser = await storage.getUser(decoded.userId);
+      if (!currentUser) {
+        return res.status(401).json({ message: "User not found" });
+      }
+
+      const otherUsername = currentUser.username === "user1" ? "user2" : "user1";
+      const otherUser = await storage.getUserByUsername(otherUsername);
+      if (!otherUser) {
+        return res.status(404).json({ message: "Other user not found" });
+      }
+
+      res.json({ id: otherUser.id, username: otherUser.username });
+    } catch (error) {
+      res.status(401).json({ message: "Invalid token" });
+    }
+  });
+
   app.get("/api/messages", async (req, res) => {
     try {
       const authHeader = req.headers.authorization;
