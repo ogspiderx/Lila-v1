@@ -24,7 +24,14 @@ export function useChat() {
   // Poll for new messages every 2 seconds
   const pollMessages = useCallback(async () => {
     try {
-      const response = await fetch('/api/messages');
+      const token = getStoredToken();
+      if (!token) return;
+      
+      const response = await fetch('/api/messages', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
       if (response.ok) {
         const newMessages = await response.json();
         setMessages(newMessages);
@@ -63,10 +70,14 @@ export function useChat() {
 
   const sendMessage = useCallback(async (content: string, receiverId: string) => {
     try {
+      const token = getStoredToken();
+      if (!token) return;
+      
       const response = await fetch('/api/messages', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           content,
