@@ -42,7 +42,7 @@ export function useChat() {
     try {
       const token = getStoredToken();
       if (!token) return;
-      
+
       const response = await fetch('/api/messages', {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -50,7 +50,7 @@ export function useChat() {
       });
       if (response.ok) {
         const allMessages = await response.json();
-        
+
         // Always update messages to ensure UI reflects latest state (including seen status)
         setMessages(allMessages);
         lastMessageCount.current = allMessages.length;
@@ -67,7 +67,7 @@ export function useChat() {
     try {
       const token = getStoredToken();
       if (!token) return;
-      
+
       const response = await fetch('/api/messages/paginated?limit=20&offset=0', {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -87,12 +87,12 @@ export function useChat() {
   // Load more messages (for pagination)
   const loadMoreMessages = useCallback(async () => {
     if (isLoadingMore || !hasMoreMessages) return;
-    
+
     try {
       setIsLoadingMore(true);
       const token = getStoredToken();
       if (!token) return;
-      
+
       const response = await fetch(`/api/messages/paginated?limit=20&offset=${messages.length}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -111,76 +111,75 @@ export function useChat() {
     }
   }, [messages.length, isLoadingMore, hasMoreMessages]);
 
-  const connect = useCallback(() => {
-    const token = getStoredToken();
-    if (!token) {
-      console.log('No token available');
-      return;
-    }
-
-    setIsConnected(true);
-    
-    // Load initial messages with pagination
-    loadInitialMessages();
-    
-    // Start polling every 1 second for immediate GUI updates
-    if (pollingRef.current) {
-      clearInterval(pollingRef.current);
-    }
-    pollingRef.current = setInterval(pollMessages, 1000);
-    
-    // Establish WebSocket connection for typing indicators
+  const connect = useCallback(async () => {
     try {
-      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      await loadInitialMessages();
+
+      // Start polling for messages - reduced frequency
+      pollingRef.current = setInterval(() => {
+        pollMessages();
+      }, 5000); // Poll every 5 seconds instead of 1 second
+
+      // Setup WebSocket connection
+      const token = getStoredToken();
+      if (!token) return;
+
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const wsUrl = `${protocol}//${window.location.host}/api/ws`;
-      
+      console.log('Connecting to WebSocket:', wsUrl);
+
       wsRef.current = new WebSocket(wsUrl);
-      
+
       wsRef.current.onopen = () => {
         console.log('WebSocket connected for typing indicators');
-        if (wsRef.current) {
-          wsRef.current.send(JSON.stringify({
-            type: 'auth',
-            token,
-          }));
-        }
+        setIsConnected(true);
+
+        // Authenticate after a short delay to ensure connection is stable
+        setTimeout(() => {
+          if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+            wsRef.current.send(JSON.stringify({
+              type: 'auth',
+              token,
+            }));
+          }
+        }, 100);
       };
-      
+
       wsRef.current.onmessage = (event) => {
         try {
           const message = JSON.parse(event.data);
+          console.log('WebSocket message received:', message.type);
+
           if (message.type === 'typing') {
             setTypingStatus(message.data);
-            
+
             // Clear typing indicator after 3 seconds
             if (typingTimeoutRef.current) {
               clearTimeout(typingTimeoutRef.current);
             }
-            
+
             if (message.data.isTyping) {
-              // Keep typing indicator active, extend timeout to 5 seconds
               typingTimeoutRef.current = setTimeout(() => {
                 setTypingStatus(null);
-              }, 5000);
+              }, 3000);
             } else {
               setTypingStatus(null);
             }
-          } else if (message.type === 'message_seen') {
-            // Handle real-time seen status updates
-            const { messageIds, seenAt } = message.data;
-            console.log('Received WebSocket seen update:', messageIds);
+          } else if (message.type === 'new_message' || message.type === 'message_sent') {
+            // Handle new messages via WebSocket - stop polling when we get real-time updates
+            const newMessage = message.data;
+            console.log('Received new message via WebSocket:', newMessage);
             setMessages(prev => {
-              const updated = prev.map(msg => 
-                messageIds.includes(msg.id) ? { ...msg, seenAt } : msg
-              );
-              return updated;
+              // Check if message already exists to prevent duplicates
+              const exists = prev.some(msg => msg.id === newMessage.id);
+              if (exists) return prev;
+              return [...prev, newMessage];
             });
-            // Force re-render
             setForceUpdate(prev => prev + 1);
           } else if (message.type === 'message_edited') {
-            // Handle real-time message edit updates
+            // Handle real-time message edits
             const editedMessage = message.data;
-            console.log('Received WebSocket edit update:', editedMessage);
+            console.log('Received WebSocket message edit:', editedMessage);
             setMessages(prev => {
               const updated = prev.map(msg => 
                 msg.id === editedMessage.id ? editedMessage : msg
@@ -190,9 +189,9 @@ export function useChat() {
             // Force re-render
             setForceUpdate(prev => prev + 1);
           } else if (message.type === 'message_deleted') {
-            // Handle real-time message delete updates
+            // Handle real-time message deletions
             const { messageId } = message.data;
-            console.log('Received WebSocket delete update:', messageId);
+            console.log('Received WebSocket message deletion:', messageId);
             setMessages(prev => prev.filter(msg => msg.id !== messageId));
             // Force re-render
             setForceUpdate(prev => prev + 1);
@@ -213,11 +212,11 @@ export function useChat() {
           console.error('Error parsing WebSocket message:', error);
         }
       };
-      
+
       wsRef.current.onclose = () => {
         console.log('WebSocket disconnected');
       };
-      
+
       wsRef.current.onerror = (error) => {
         console.error('WebSocket error:', error);
       };
@@ -247,7 +246,7 @@ export function useChat() {
     try {
       const token = getStoredToken();
       if (!token) return;
-      
+
       const response = await fetch('/api/messages', {
         method: 'POST',
         headers: {
@@ -278,9 +277,9 @@ export function useChat() {
     try {
       const token = getStoredToken();
       if (!token || messageIds.length === 0) return;
-      
+
       console.log('Marking messages as seen:', messageIds);
-      
+
       const response = await fetch('/api/messages/mark-seen', {
         method: 'POST',
         headers: {
@@ -309,7 +308,7 @@ export function useChat() {
     try {
       const token = getStoredToken();
       if (!token) return false;
-      
+
       const response = await fetch(`/api/messages/${messageId}`, {
         method: 'PUT',
         headers: {
@@ -324,7 +323,7 @@ export function useChat() {
       if (response.ok) {
         const editedMessage = await response.json();
         console.log('Message edited successfully:', editedMessage);
-        
+
         // Update the message in the local state immediately
         setMessages(prev => {
           const updated = prev.map(msg => 
@@ -332,7 +331,7 @@ export function useChat() {
           );
           return updated;
         });
-        
+
         // Send via WebSocket for real-time updates to other users
         if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
           wsRef.current.send(JSON.stringify({
@@ -340,13 +339,13 @@ export function useChat() {
             data: { messageId, content },
           }));
         }
-        
+
         // Force re-render
         setForceUpdate(prev => prev + 1);
-        
+
         // Also poll for updates to ensure consistency
         setTimeout(() => pollMessages(), 50);
-        
+
         return true;
       } else {
         console.error('Failed to edit message');
@@ -362,7 +361,7 @@ export function useChat() {
     try {
       const token = getStoredToken();
       if (!token) return false;
-      
+
       const response = await fetch(`/api/messages/${messageId}`, {
         method: 'DELETE',
         headers: {
@@ -372,10 +371,10 @@ export function useChat() {
 
       if (response.ok) {
         console.log('Message deleted successfully:', messageId);
-        
+
         // Remove the message from the local state immediately
         setMessages(prev => prev.filter(msg => msg.id !== messageId));
-        
+
         // Send via WebSocket for real-time updates to other users
         if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
           wsRef.current.send(JSON.stringify({
@@ -383,10 +382,10 @@ export function useChat() {
             data: { messageId },
           }));
         }
-        
+
         // Force re-render
         setForceUpdate(prev => prev + 1);
-        
+
         return true;
       } else {
         console.error('Failed to delete message');
@@ -402,7 +401,7 @@ export function useChat() {
     try {
       const token = getStoredToken();
       if (!token) return false;
-      
+
       const response = await fetch(`/api/messages/${messageId}/reactions`, {
         method: action === 'add' ? 'POST' : 'DELETE',
         headers: {
@@ -415,7 +414,7 @@ export function useChat() {
       if (response.ok) {
         const { message: updatedMessage } = await response.json();
         console.log(`Reaction ${action}ed successfully:`, updatedMessage);
-        
+
         // Update the message in the local state immediately
         setMessages(prev => {
           const updated = prev.map(msg => 
@@ -423,7 +422,7 @@ export function useChat() {
           );
           return updated;
         });
-        
+
         // Send via WebSocket for real-time updates to other users
         if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
           wsRef.current.send(JSON.stringify({
@@ -431,7 +430,7 @@ export function useChat() {
             data: { messageId, emoji },
           }));
         }
-        
+
         return true;
       } else {
         console.error(`Failed to ${action} reaction`);
