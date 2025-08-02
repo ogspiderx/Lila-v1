@@ -78,17 +78,26 @@ export function MessageBubble({ message, onReply, onEdit, onDelete, onReaction }
   };
 
   const handleEmojiSelect = async (emoji: string) => {
-    if (!onReaction) return;
+    if (!onReaction || !currentUser) return;
 
     // Check if user already reacted with this emoji
     const userReaction = message.reactions?.find(
-      r => r.emoji === emoji && r.userId === currentUser?.id
+      r => r.emoji === emoji && r.userId === currentUser.id
     );
 
     if (userReaction) {
       // Remove reaction
       await onReaction(message.id, emoji, 'remove');
     } else {
+      // Check if user has reached the limit of 2 reactions
+      const userReactionCount = message.reactions?.filter(
+        r => r.userId === currentUser.id
+      ).length || 0;
+
+      if (userReactionCount >= 2) {
+        return; // Don't add more reactions if limit is reached
+      }
+
       // Add reaction
       await onReaction(message.id, emoji, 'add');
     }
@@ -207,7 +216,10 @@ export function MessageBubble({ message, onReply, onEdit, onDelete, onReaction }
                   </Button>
                 )}
                 {onReaction && (
-                  <EmojiPicker onEmojiSelect={handleEmojiSelect} />
+                  <EmojiPicker 
+                    onEmojiSelect={handleEmojiSelect}
+                    disabled={!currentUser || (message.reactions?.filter(r => r.userId === currentUser?.id).length || 0) >= 2}
+                  />
                 )}
               </div>
             </>

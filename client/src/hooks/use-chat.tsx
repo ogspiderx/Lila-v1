@@ -432,9 +432,6 @@ export function useChat() {
           }));
         }
         
-        // Force re-render
-        setForceUpdate(prev => prev + 1);
-        
         return true;
       } else {
         console.error(`Failed to ${action} reaction`);
