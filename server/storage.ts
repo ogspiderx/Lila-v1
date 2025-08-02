@@ -69,7 +69,7 @@ export class MemStorage implements IStorage {
       content: message.content,
       senderId: message.senderId,
       receiverId: message.receiverId,
-      timestamp: new Date().toISOString(),
+      timestamp: new Date(),
     };
     this.messages.set(id, newMessage);
     console.log('Created message:', newMessage);
