@@ -8,6 +8,7 @@ export interface Message {
   receiverId: string;
   replyToId?: string;
   timestamp: string;
+  seenAt?: string | null;
   senderUsername: string;
   repliedMessage?: {
     id: string;
@@ -228,6 +229,34 @@ export function useChat() {
     }
   }, [pollMessages]);
 
+  const markMessagesAsSeen = useCallback(async (messageIds: string[]) => {
+    try {
+      const token = getStoredToken();
+      if (!token || messageIds.length === 0) return;
+      
+      const response = await fetch('/api/messages/mark-seen', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          messageIds,
+        }),
+      });
+
+      if (response.ok) {
+        console.log('Messages marked as seen:', messageIds.length);
+        // Refresh messages to get updated seen status
+        pollMessages();
+      } else {
+        console.error('Failed to mark messages as seen');
+      }
+    } catch (error) {
+      console.error('Error marking messages as seen:', error);
+    }
+  }, [pollMessages]);
+
   const sendTyping = useCallback((receiverId: string, isTyping: boolean) => {
     // Send typing indicator via existing WebSocket connection
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
@@ -267,6 +296,7 @@ export function useChat() {
     disconnect,
     sendMessage,
     sendTyping,
+    markMessagesAsSeen,
     loadMoreMessages,
   };
 }

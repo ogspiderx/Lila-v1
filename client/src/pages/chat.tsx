@@ -35,6 +35,7 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
     disconnect,
     sendMessage,
     sendTyping,
+    markMessagesAsSeen,
     loadMoreMessages,
   } = useChat();
 
@@ -90,6 +91,22 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
   useEffect(() => {
     scrollToBottom();
   }, [messages, typingStatus]);
+
+  // Mark received messages as seen when they appear
+  useEffect(() => {
+    if (messages.length > 0 && currentUser && otherUserId) {
+      const unseenReceivedMessages = messages.filter(msg => 
+        msg.receiverId === currentUser.id && 
+        msg.senderId === otherUserId && 
+        !msg.seenAt
+      );
+      
+      if (unseenReceivedMessages.length > 0) {
+        const messageIds = unseenReceivedMessages.map(msg => msg.id);
+        markMessagesAsSeen(messageIds);
+      }
+    }
+  }, [messages, currentUser, otherUserId, markMessagesAsSeen]);
 
   const scrollToBottom = () => {
     if (messagesContainerRef.current) {

@@ -1,6 +1,6 @@
-import { Message } from "@/hooks/use-websocket";
+import { Message } from "@/hooks/use-chat";
 import { getStoredUser } from "@/lib/auth";
-import { Reply } from "lucide-react";
+import { Reply, Check, CheckCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface MessageBubbleProps {
@@ -59,7 +59,13 @@ export function MessageBubble({ message, onReply }: MessageBubbleProps) {
           <span className="text-xs text-gray-500">{message.senderUsername}</span>
           {!isSent && <span className="text-xs text-gray-400">{timestamp}</span>}
           {isSent && (
-            <i className="fas fa-check-double text-chat-primary text-xs" title="Delivered"></i>
+            <div className="flex items-center" title={message.seenAt ? "Seen" : "Delivered"}>
+              {message.seenAt ? (
+                <CheckCheck className="h-3 w-3 text-blue-500" />
+              ) : (
+                <Check className="h-3 w-3 text-gray-400" />
+              )}
+            </div>
           )}
         </div>
       </div>

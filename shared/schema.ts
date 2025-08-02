@@ -16,6 +16,7 @@ export const messages = pgTable("messages", {
   receiverId: varchar("receiver_id").notNull().references(() => users.id),
   replyToId: varchar("reply_to_id"),
   timestamp: timestamp("timestamp").notNull().defaultNow(),
+  seenAt: timestamp("seen_at"),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({

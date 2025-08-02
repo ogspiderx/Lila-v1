@@ -9,6 +9,8 @@ export interface IStorage {
   getMessageById(id: string): Promise<Message | undefined>;
   getMessagesBetweenUsers(user1Id: string, user2Id: string): Promise<Message[]>;
   getMessagesBetweenUsersPaginated(user1Id: string, user2Id: string, limit: number, offset: number): Promise<{ messages: Message[], hasMore: boolean }>;
+  markMessageAsSeen(messageId: string, userId: string): Promise<void>;
+  markMessagesAsSeen(messageIds: string[], userId: string): Promise<void>;
   initializeUsers(): Promise<void>;
 }
 
@@ -72,6 +74,7 @@ export class MemStorage implements IStorage {
       receiverId: message.receiverId,
       replyToId: message.replyToId || null,
       timestamp: new Date(),
+      seenAt: null,
     };
     this.messages.set(id, newMessage);
     console.log('Created message:', newMessage);
@@ -112,6 +115,21 @@ export class MemStorage implements IStorage {
       messages: messages.reverse(),
       hasMore
     };
+  }
+
+  async markMessageAsSeen(messageId: string, userId: string): Promise<void> {
+    const message = this.messages.get(messageId);
+    if (message && message.receiverId === userId && !message.seenAt) {
+      const updatedMessage = { ...message, seenAt: new Date() };
+      this.messages.set(messageId, updatedMessage);
+      console.log(`Message ${messageId} marked as seen by user ${userId}`);
+    }
+  }
+
+  async markMessagesAsSeen(messageIds: string[], userId: string): Promise<void> {
+    for (const messageId of messageIds) {
+      await this.markMessageAsSeen(messageId, userId);
+    }
   }
 }
 

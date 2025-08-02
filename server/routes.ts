@@ -243,6 +243,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // POST route for marking messages as seen
+  app.post("/api/messages/mark-seen", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith("Bearer ")) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const token = authHeader.substring(7);
+      const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+      
+      const { messageIds } = z.object({
+        messageIds: z.array(z.string()).min(1)
+      }).parse(req.body);
+      
+      await storage.markMessagesAsSeen(messageIds, decoded.userId);
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error marking messages as seen:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to mark messages as seen" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   // WebSocket server setup
