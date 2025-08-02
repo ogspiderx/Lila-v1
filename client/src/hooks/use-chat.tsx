@@ -30,6 +30,7 @@ export function useChat() {
   const [typingStatus, setTypingStatus] = useState<TypingStatus | null>(null);
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [forceUpdate, setForceUpdate] = useState(0); // Force update counter
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
   const lastMessageCount = useRef(0);
   const wsRef = useRef<WebSocket | null>(null);
@@ -163,6 +164,18 @@ export function useChat() {
             } else {
               setTypingStatus(null);
             }
+          } else if (message.type === 'message_seen') {
+            // Handle real-time seen status updates
+            const { messageIds, seenAt } = message.data;
+            console.log('Received WebSocket seen update:', messageIds);
+            setMessages(prev => {
+              const updated = prev.map(msg => 
+                messageIds.includes(msg.id) ? { ...msg, seenAt } : msg
+              );
+              return updated;
+            });
+            // Force re-render
+            setForceUpdate(prev => prev + 1);
           }
         } catch (error) {
           console.error('Error parsing WebSocket message:', error);
@@ -236,16 +249,26 @@ export function useChat() {
       
       console.log('Marking messages as seen:', messageIds);
       
-      // Optimistically update the messages locally first
       const currentTime = new Date().toISOString();
-      setMessages(prev => {
-        const updated = [...prev].map(msg => 
+      
+      // Multiple approaches to force UI update
+      const updateMessages = (updateFn: (prev: Message[]) => Message[]) => {
+        setMessages(updateFn);
+        setForceUpdate(prev => prev + 1);
+      };
+      
+      // Immediate optimistic update with multiple force mechanisms
+      updateMessages(prev => {
+        const newMessages = prev.map(msg => 
           messageIds.includes(msg.id) ? { ...msg, seenAt: currentTime } : msg
         );
-        console.log('Optimistically updated messages:', updated.filter(m => messageIds.includes(m.id)));
-        console.log('State update forced with new array reference');
-        return updated;
+        console.log('FORCE UPDATE: Messages updated with seen status');
+        return newMessages;
       });
+      
+      // Also force a state change on a different state variable to trigger re-render
+      setTimeout(() => setForceUpdate(prev => prev + 1), 50);
+      setTimeout(() => setForceUpdate(prev => prev + 1), 100);
       
       const response = await fetch('/api/messages/mark-seen', {
         method: 'POST',
@@ -260,18 +283,19 @@ export function useChat() {
 
       if (response.ok) {
         console.log('Messages marked as seen on server:', messageIds.length);
-        // The optimistic update should be enough, no need to poll again
+        // Force another update after server confirmation
+        setForceUpdate(prev => prev + 1);
       } else {
         console.error('Failed to mark messages as seen');
         // Revert optimistic update on failure
-        setMessages(prev => prev.map(msg => 
+        updateMessages(prev => prev.map(msg => 
           messageIds.includes(msg.id) ? { ...msg, seenAt: null } : msg
         ));
       }
     } catch (error) {
       console.error('Error marking messages as seen:', error);
       // Revert optimistic update on error
-      setMessages(prev => prev.map(msg => 
+      updateMessages(prev => prev.map(msg => 
         messageIds.includes(msg.id) ? { ...msg, seenAt: null } : msg
       ));
     }
@@ -312,6 +336,7 @@ export function useChat() {
     typingStatus,
     hasMoreMessages,
     isLoadingMore,
+    forceUpdate, // Include forceUpdate to trigger re-renders
     connect,
     disconnect,
     sendMessage,

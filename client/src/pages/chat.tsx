@@ -31,6 +31,7 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
     typingStatus,
     hasMoreMessages,
     isLoadingMore,
+    forceUpdate,
     connect,
     disconnect,
     sendMessage,
@@ -125,7 +126,14 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, typingStatus]);
+    console.log('CHAT PAGE: Messages or typing changed, current messages:', messages.length);
+  }, [messages, typingStatus, forceUpdate]);
+
+  // Debug effect to log message seen status changes
+  useEffect(() => {
+    const seenMessages = messages.filter(msg => msg.seenAt);
+    console.log('CHAT PAGE: Seen messages count:', seenMessages.length);
+  }, [messages, forceUpdate]);
 
   
 
