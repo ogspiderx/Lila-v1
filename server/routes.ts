@@ -117,22 +117,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
 
   // WebSocket server setup
-  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+  const wss = new WebSocketServer({ 
+    server: httpServer, 
+    path: '/api/ws',
+    clientTracking: true
+  });
+
+  console.log('WebSocket server created on path /api/ws');
 
   wss.on('connection', (ws, req) => {
+    console.log('WebSocket connection established from:', req.socket.remoteAddress);
     let userId: string | null = null;
+
+    // Don't ping immediately as it might cause issues
+    // Send a welcome message instead
+    ws.send(JSON.stringify({ type: 'connected', message: 'WebSocket connected' }));
 
     ws.on('message', async (data) => {
       try {
         const message = JSON.parse(data.toString());
+        console.log('WebSocket message received:', message.type, 'from user:', userId);
+
+        if (message.type === 'ping') {
+          // Simple ping-pong test
+          ws.send(JSON.stringify({ type: 'pong' }));
+          return;
+        }
 
         if (message.type === 'auth') {
           // Authenticate WebSocket connection
-          const decoded = jwt.verify(message.token, JWT_SECRET) as { userId: string };
-          userId = decoded.userId;
-          connections.set(userId, ws);
-          
-          ws.send(JSON.stringify({ type: 'auth_success' }));
+          try {
+            const decoded = jwt.verify(message.token, JWT_SECRET) as { userId: string };
+            userId = decoded.userId;
+            connections.set(userId, ws);
+            
+            console.log('WebSocket authenticated for user:', userId);
+            ws.send(JSON.stringify({ type: 'auth_success' }));
+          } catch (error) {
+            console.error('WebSocket auth error:', error);
+            ws.send(JSON.stringify({ type: 'auth_error', message: 'Invalid token' }));
+            return;
+          }
         } else if (message.type === 'message' && userId) {
           // Handle new message
           const { content, receiverId } = insertMessageSchema.parse(message.data);
@@ -188,10 +213,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
 
-    ws.on('close', () => {
+    ws.on('close', (code, reason) => {
+      console.log(`WebSocket closed for user ${userId}: code ${code}, reason: ${reason.toString()}`);
       if (userId) {
         connections.delete(userId);
       }
+    });
+
+    ws.on('error', (error) => {
+      console.error('WebSocket error for user', userId, ':', error);
+    });
+
+    ws.on('pong', () => {
+      // Connection is alive
     });
   });
 

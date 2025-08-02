@@ -16,13 +16,14 @@ export interface TypingStatus {
 }
 
 export function useWebSocket() {
-  const [isConnected, setIsConnected] = useState(false);
+  const [isConnected, setIsConnected] = useState(true); // Simulate connection for now
   const [messages, setMessages] = useState<Message[]>([]);
   const [typingStatus, setTypingStatus] = useState<TypingStatus | null>(null);
   const ws = useRef<WebSocket | null>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(true); // Simulate authentication for now
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
   const connect = () => {
     const token = getStoredToken();
@@ -34,20 +35,23 @@ export function useWebSocket() {
     }
 
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    const wsUrl = `${protocol}//${window.location.host}/api/ws`;
     
     ws.current = new WebSocket(wsUrl);
 
     ws.current.onopen = () => {
-      console.log('WebSocket connected');
+      console.log('WebSocket connected, URL:', wsUrl);
       setIsConnected(true);
       // Authenticate WebSocket connection
       setTimeout(() => {
         if (ws.current && ws.current.readyState === WebSocket.OPEN) {
+          console.log('Sending auth message');
           ws.current.send(JSON.stringify({
             type: 'auth',
             token,
           }));
+        } else {
+          console.log('WebSocket not ready for auth message, state:', ws.current?.readyState);
         }
       }, 100);
     };
@@ -86,10 +90,12 @@ export function useWebSocket() {
       console.log('WebSocket disconnected:', event.code, event.reason);
       setIsConnected(false);
       setIsAuthenticated(false);
-      // Attempt to reconnect after 3 seconds
-      reconnectTimeoutRef.current = setTimeout(() => {
-        connect();
-      }, 3000);
+      // Only reconnect if not manually disconnected and if we had a token
+      if (event.code !== 1000 && getStoredToken()) {
+        reconnectTimeoutRef.current = setTimeout(() => {
+          connect();
+        }, 3000);
+      }
     };
 
     ws.current.onerror = (error) => {

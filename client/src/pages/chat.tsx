@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getStoredUser, getStoredToken, logout } from "@/lib/auth";
-import { useWebSocket } from "@/hooks/use-websocket";
+import { useChat } from "@/hooks/use-chat";
 import { MessageBubble } from "@/components/message-bubble";
 import { TypingIndicator } from "@/components/typing-indicator";
 import { Button } from "@/components/ui/button";
@@ -25,13 +25,12 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
     isConnected,
     isAuthenticated,
     messages,
-    setMessages,
     typingStatus,
     connect,
     disconnect,
     sendMessage,
-    sendTypingStatus,
-  } = useWebSocket();
+    sendTyping,
+  } = useChat();
 
   // Fetch other user info
   const { data: otherUser } = useQuery({
@@ -67,11 +66,7 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
   const otherUsername = otherUser?.username || (currentUser?.username === "user1" ? "user2" : "user1");
   const otherUserId = otherUser?.id;
 
-  useEffect(() => {
-    if (initialMessages) {
-      setMessages(initialMessages);
-    }
-  }, [initialMessages, setMessages]);
+  // Remove this effect as messages are now handled by the polling hook
 
   useEffect(() => {
     connect();
@@ -103,7 +98,7 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
     
     if (!isTyping && value.length > 0 && otherUserId && isAuthenticated) {
       setIsTyping(true);
-      sendTypingStatus(otherUserId, true);
+      sendTyping();
     }
 
     // Clear previous timeout
@@ -118,9 +113,8 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
   };
 
   const handleStopTyping = () => {
-    if (isTyping && otherUserId && isAuthenticated) {
+    if (isTyping) {
       setIsTyping(false);
-      sendTypingStatus(otherUserId, false);
     }
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
