@@ -196,6 +196,18 @@ export function useChat() {
             setMessages(prev => prev.filter(msg => msg.id !== messageId));
             // Force re-render
             setForceUpdate(prev => prev + 1);
+          } else if (message.type === 'reaction_added' || message.type === 'reaction_removed') {
+            // Handle real-time reaction updates
+            const updatedMessage = message.data;
+            console.log('Received WebSocket reaction update:', updatedMessage);
+            setMessages(prev => {
+              const updated = prev.map(msg => 
+                msg.id === updatedMessage.id ? updatedMessage : msg
+              );
+              return updated;
+            });
+            // Force re-render
+            setForceUpdate(prev => prev + 1);
           }
         } catch (error) {
           console.error('Error parsing WebSocket message:', error);
@@ -386,6 +398,54 @@ export function useChat() {
     }
   }, []);
 
+  const reactToMessage = useCallback(async (messageId: string, emoji: string, action: 'add' | 'remove'): Promise<boolean> => {
+    try {
+      const token = getStoredToken();
+      if (!token) return false;
+      
+      const response = await fetch(`/api/messages/${messageId}/reactions`, {
+        method: action === 'add' ? 'POST' : 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ emoji }),
+      });
+
+      if (response.ok) {
+        const { message: updatedMessage } = await response.json();
+        console.log(`Reaction ${action}ed successfully:`, updatedMessage);
+        
+        // Update the message in the local state immediately
+        setMessages(prev => {
+          const updated = prev.map(msg => 
+            msg.id === updatedMessage.id ? updatedMessage : msg
+          );
+          return updated;
+        });
+        
+        // Send via WebSocket for real-time updates to other users
+        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+          wsRef.current.send(JSON.stringify({
+            type: action === 'add' ? 'add_reaction' : 'remove_reaction',
+            data: { messageId, emoji },
+          }));
+        }
+        
+        // Force re-render
+        setForceUpdate(prev => prev + 1);
+        
+        return true;
+      } else {
+        console.error(`Failed to ${action} reaction`);
+        return false;
+      }
+    } catch (error) {
+      console.error(`Error ${action}ing reaction:`, error);
+      return false;
+    }
+  }, []);
+
   const sendTyping = useCallback((receiverId: string, isTyping: boolean) => {
     // Send typing indicator via existing WebSocket connection
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
@@ -427,6 +487,7 @@ export function useChat() {
     sendMessage,
     editMessage,
     deleteMessage,
+    reactToMessage,
     sendTyping,
     markMessagesAsSeen,
     loadMoreMessages,

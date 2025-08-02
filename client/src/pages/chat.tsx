@@ -6,7 +6,7 @@ import { MessageBubble } from "@/components/message-bubble";
 import { TypingIndicator } from "@/components/typing-indicator";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import EmojiPicker from "@/components/emoji-picker";
+import { EmojiPicker } from "@/components/emoji-picker";
 import { Users, LogOut, Wifi, Send, X } from "lucide-react";
 
 interface ChatPageProps {
@@ -37,6 +37,7 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
     sendMessage,
     editMessage,
     deleteMessage,
+    reactToMessage,
     sendTyping,
     markMessagesAsSeen,
     loadMoreMessages,
@@ -314,6 +315,7 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
               onReply={setReplyingTo}
               onEdit={editMessage}
               onDelete={deleteMessage}
+              onReaction={reactToMessage}
             />
           ))}
 

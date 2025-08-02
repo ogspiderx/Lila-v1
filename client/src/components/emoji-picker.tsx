@@ -1,78 +1,54 @@
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Smile } from 'lucide-react';
+import React, { useState } from 'react';
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Smile } from "lucide-react";
 
 interface EmojiPickerProps {
   onEmojiSelect: (emoji: string) => void;
+  disabled?: boolean;
 }
 
-const commonEmojis = [
-  '😀', '😃', '😄', '😁', '😅', '😂', '🤣', '😊',
-  '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘',
-  '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪',
-  '🤨', '🧐', '🤓', '😎', '🤩', '🥳', '😏', '😒',
-  '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖',
-  '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡',
-  '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰',
-  '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥', '😶',
-  '😐', '😑', '😬', '🙄', '😯', '😦', '😧', '😮',
-  '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐', '🥴',
-  '🤢', '🤮', '🤧', '😷', '🤒', '🤕', '🤑', '🤠',
-  '👍', '👎', '👌', '✌️', '🤞', '🤟', '🤘', '🤙',
-  '👈', '👉', '👆', '👇', '☝️', '✋', '🤚', '🖐',
-  '🖖', '👋', '🤏', '💪', '🦾', '🖕', '✍️', '🙏',
-  '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍',
-  '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖',
-  '💘', '💝', '💯', '💢', '💥', '💫', '💦', '💨'
+const COMMON_EMOJIS = [
+  '👍', '👎', '❤️', '😂', '😮', '😢', '😡', '🎉', '🔥', '💯',
+  '👏', '🙌', '💪', '🤝', '🙏', '👀', '💡', '⭐', '✅', '❌'
 ];
 
-export default function EmojiPicker({ onEmojiSelect }: EmojiPickerProps) {
-  const [isOpen, setIsOpen] = useState(false);
+export function EmojiPicker({ onEmojiSelect, disabled = false }: EmojiPickerProps) {
+  const [open, setOpen] = useState(false);
 
   const handleEmojiClick = (emoji: string) => {
     onEmojiSelect(emoji);
-    setIsOpen(false);
+    setOpen(false);
   };
 
   return (
-    <div className="relative">
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-        title="Add emoji"
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        <Smile size={16} />
-      </Button>
-      
-      {isOpen && (
-        <>
-          {/* Backdrop */}
-          <div 
-            className="fixed inset-0 z-10" 
-            onClick={() => setIsOpen(false)}
-          />
-          
-          {/* Emoji Panel */}
-          <div className="absolute bottom-full right-0 mb-2 bg-white border border-gray-200 rounded-lg shadow-lg p-3 z-20 w-64 max-h-48 overflow-y-auto">
-            <div className="grid grid-cols-8 gap-1">
-              {commonEmojis.map((emoji, index) => (
-                <button
-                  key={index}
-                  type="button"
-                  className="w-8 h-8 rounded hover:bg-gray-100 flex items-center justify-center text-lg transition-colors"
-                  onClick={() => handleEmojiClick(emoji)}
-                  title={emoji}
-                >
-                  {emoji}
-                </button>
-              ))}
-            </div>
-          </div>
-        </>
-      )}
-    </div>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="p-1 h-6 w-6 bg-white dark:bg-gray-800 border shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700"
+          disabled={disabled}
+          title="Add reaction"
+        >
+          <Smile className="h-3 w-3" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-64 p-2" align="start">
+        <div className="grid grid-cols-5 gap-2">
+          {COMMON_EMOJIS.map((emoji) => (
+            <Button
+              key={emoji}
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 text-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+              onClick={() => handleEmojiClick(emoji)}
+            >
+              {emoji}
+            </Button>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }

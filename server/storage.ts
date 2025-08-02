@@ -1,6 +1,12 @@
 import { type User, type InsertUser, type Message, type InsertMessage, type EditMessageRequest } from "@shared/schema";
 import { randomUUID } from "crypto";
 
+export interface MessageReaction {
+  emoji: string;
+  userId: string;
+  username: string;
+}
+
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
@@ -8,6 +14,8 @@ export interface IStorage {
   createMessage(message: InsertMessage & { senderId: string }): Promise<Message>;
   editMessage(messageId: string, content: string, userId: string): Promise<Message | null>;
   deleteMessage(messageId: string, userId: string): Promise<boolean>;
+  addReaction(messageId: string, emoji: string, userId: string): Promise<Message | null>;
+  removeReaction(messageId: string, emoji: string, userId: string): Promise<Message | null>;
   getMessageById(id: string): Promise<Message | undefined>;
   getMessagesBetweenUsers(user1Id: string, user2Id: string): Promise<Message[]>;
   getMessagesBetweenUsersPaginated(user1Id: string, user2Id: string, limit: number, offset: number): Promise<{ messages: Message[], hasMore: boolean }>;
@@ -19,10 +27,12 @@ export interface IStorage {
 export class MemStorage implements IStorage {
   private users: Map<string, User>;
   private messages: Map<string, Message>;
+  private reactions: Map<string, MessageReaction[]>; // messageId -> reactions
 
   constructor() {
     this.users = new Map();
     this.messages = new Map();
+    this.reactions = new Map();
   }
 
   async initializeUsers(): Promise<void> {
@@ -118,7 +128,11 @@ export class MemStorage implements IStorage {
         (message.senderId === user1Id && message.receiverId === user2Id) ||
         (message.senderId === user2Id && message.receiverId === user1Id)
       )
-      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+      .map(message => ({
+        ...message,
+        reactions: this.reactions.get(message.id) || []
+      }));
     
     console.log('Retrieved messages:', filteredMessages.length);
     return filteredMessages;
@@ -130,7 +144,11 @@ export class MemStorage implements IStorage {
         (message.senderId === user1Id && message.receiverId === user2Id) ||
         (message.senderId === user2Id && message.receiverId === user1Id)
       )
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()); // Newest first for pagination
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()) // Newest first for pagination
+      .map(message => ({
+        ...message,
+        reactions: this.reactions.get(message.id) || []
+      }));
     
     const messages = allMessages.slice(offset, offset + limit);
     const hasMore = offset + limit < allMessages.length;
@@ -173,8 +191,76 @@ export class MemStorage implements IStorage {
     }
 
     this.messages.delete(messageId);
+    this.reactions.delete(messageId); // Also remove any reactions
     console.log('Deleted message:', messageId);
     return true;
+  }
+
+  async addReaction(messageId: string, emoji: string, userId: string): Promise<Message | null> {
+    const message = this.messages.get(messageId);
+    if (!message) {
+      console.log('Message not found for reaction:', messageId);
+      return null;
+    }
+
+    const user = this.users.get(userId);
+    if (!user) {
+      console.log('User not found for reaction:', userId);
+      return null;
+    }
+
+    // Get existing reactions for this message
+    let messageReactions = this.reactions.get(messageId) || [];
+    
+    // Check if user already reacted with this emoji
+    const existingReactionIndex = messageReactions.findIndex(
+      r => r.userId === userId && r.emoji === emoji
+    );
+
+    if (existingReactionIndex === -1) {
+      // Add new reaction
+      messageReactions.push({
+        emoji,
+        userId,
+        username: user.username
+      });
+      this.reactions.set(messageId, messageReactions);
+      console.log(`Added reaction ${emoji} to message ${messageId} by user ${userId}`);
+    }
+
+    // Return message with updated reactions
+    const updatedMessage: Message = {
+      ...message,
+      reactions: messageReactions
+    };
+
+    return updatedMessage;
+  }
+
+  async removeReaction(messageId: string, emoji: string, userId: string): Promise<Message | null> {
+    const message = this.messages.get(messageId);
+    if (!message) {
+      console.log('Message not found for reaction removal:', messageId);
+      return null;
+    }
+
+    let messageReactions = this.reactions.get(messageId) || [];
+    
+    // Remove the reaction if it exists
+    const filteredReactions = messageReactions.filter(
+      r => !(r.userId === userId && r.emoji === emoji)
+    );
+
+    this.reactions.set(messageId, filteredReactions);
+    console.log(`Removed reaction ${emoji} from message ${messageId} by user ${userId}`);
+
+    // Return message with updated reactions
+    const updatedMessage: Message = {
+      ...message,
+      reactions: filteredReactions
+    };
+
+    return updatedMessage;
   }
 }
 

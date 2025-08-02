@@ -42,9 +42,17 @@ export const editMessageSchema = z.object({
   content: z.string().min(1).max(1000),
 });
 
+export const reactionSchema = z.object({
+  emoji: z.string().min(1).max(10),
+  messageId: z.string(),
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
-export type Message = typeof messages.$inferSelect;
+export type Message = typeof messages.$inferSelect & {
+  reactions?: Array<{ emoji: string; userId: string; username: string }>;
+};
 export type LoginRequest = z.infer<typeof loginSchema>;
 export type EditMessageRequest = z.infer<typeof editMessageSchema>;
+export type ReactionRequest = z.infer<typeof reactionSchema>;

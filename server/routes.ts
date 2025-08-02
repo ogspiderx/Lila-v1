@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
-import { loginSchema, insertMessageSchema, editMessageSchema } from "@shared/schema";
+import { loginSchema, insertMessageSchema, editMessageSchema, reactionSchema } from "@shared/schema";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { z } from "zod";
@@ -349,6 +349,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // POST route for adding reactions
+  app.post("/api/messages/:id/reactions", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith("Bearer ")) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const token = authHeader.substring(7);
+      const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+      
+      const messageId = req.params.id;
+      const { emoji } = z.object({ emoji: z.string().min(1).max(10) }).parse(req.body);
+      
+      const updatedMessage = await storage.addReaction(messageId, emoji, decoded.userId);
+      
+      if (!updatedMessage) {
+        return res.status(404).json({ message: "Message not found" });
+      }
+
+      res.json({ success: true, message: updatedMessage });
+    } catch (error) {
+      console.error('Error adding reaction:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to add reaction" });
+    }
+  });
+
+  // DELETE route for removing reactions
+  app.delete("/api/messages/:id/reactions", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith("Bearer ")) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const token = authHeader.substring(7);
+      const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+      
+      const messageId = req.params.id;
+      const { emoji } = z.object({ emoji: z.string().min(1).max(10) }).parse(req.body);
+      
+      const updatedMessage = await storage.removeReaction(messageId, emoji, decoded.userId);
+      
+      if (!updatedMessage) {
+        return res.status(404).json({ message: "Message not found" });
+      }
+
+      res.json({ success: true, message: updatedMessage });
+    } catch (error) {
+      console.error('Error removing reaction:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to remove reaction" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   // WebSocket server setup
@@ -519,6 +579,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ws.send(JSON.stringify({
               type: 'delete_error',
               message: 'Failed to delete message or not authorized',
+            }));
+          }
+        } else if (message.type === 'add_reaction' && userId) {
+          // Handle adding reaction
+          const { messageId, emoji } = message.data;
+          
+          const updatedMessage = await storage.addReaction(messageId, emoji, userId);
+          
+          if (updatedMessage) {
+            const sender = await storage.getUser(userId);
+            const messageWithUsername = {
+              ...updatedMessage,
+              senderUsername: sender?.username || "Unknown",
+            };
+
+            // Send to receiver if connected
+            const receiverWs = connections.get(updatedMessage.receiverId);
+            if (receiverWs && receiverWs.readyState === WebSocket.OPEN) {
+              receiverWs.send(JSON.stringify({
+                type: 'reaction_added',
+                data: messageWithUsername,
+              }));
+            }
+
+            // Send back to sender as confirmation
+            ws.send(JSON.stringify({
+              type: 'reaction_added',
+              data: messageWithUsername,
+            }));
+          } else {
+            ws.send(JSON.stringify({
+              type: 'reaction_error',
+              message: 'Failed to add reaction',
+            }));
+          }
+        } else if (message.type === 'remove_reaction' && userId) {
+          // Handle removing reaction
+          const { messageId, emoji } = message.data;
+          
+          const updatedMessage = await storage.removeReaction(messageId, emoji, userId);
+          
+          if (updatedMessage) {
+            const sender = await storage.getUser(userId);
+            const messageWithUsername = {
+              ...updatedMessage,
+              senderUsername: sender?.username || "Unknown",
+            };
+
+            // Send to receiver if connected
+            const receiverWs = connections.get(updatedMessage.receiverId);
+            if (receiverWs && receiverWs.readyState === WebSocket.OPEN) {
+              receiverWs.send(JSON.stringify({
+                type: 'reaction_removed',
+                data: messageWithUsername,
+              }));
+            }
+
+            // Send back to sender as confirmation
+            ws.send(JSON.stringify({
+              type: 'reaction_removed',
+              data: messageWithUsername,
+            }));
+          } else {
+            ws.send(JSON.stringify({
+              type: 'reaction_error',
+              message: 'Failed to remove reaction',
             }));
           }
         } else if (message.type === 'typing' && userId) {

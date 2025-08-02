@@ -4,6 +4,7 @@ import { Reply, Check, CheckCheck, Edit3, X, Check as CheckIcon, Trash2 } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { EmojiPicker } from "@/components/emoji-picker";
 import { useState } from "react";
 
 interface MessageBubbleProps {
@@ -11,9 +12,10 @@ interface MessageBubbleProps {
   onReply?: (message: Message) => void;
   onEdit?: (messageId: string, content: string) => Promise<boolean>;
   onDelete?: (messageId: string) => Promise<boolean>;
+  onReaction?: (messageId: string, emoji: string, action: 'add' | 'remove') => Promise<boolean>;
 }
 
-export function MessageBubble({ message, onReply, onEdit, onDelete }: MessageBubbleProps) {
+export function MessageBubble({ message, onReply, onEdit, onDelete, onReaction }: MessageBubbleProps) {
   const currentUser = getStoredUser();
   const isSent = message.senderId === currentUser?.id;
   const [isEditing, setIsEditing] = useState(false);
@@ -73,6 +75,40 @@ export function MessageBubble({ message, onReply, onEdit, onDelete }: MessageBub
     if (!onDelete) return;
     setShowDeleteDialog(false);
     await onDelete(message.id);
+  };
+
+  const handleEmojiSelect = async (emoji: string) => {
+    if (!onReaction) return;
+    
+    // Check if user already reacted with this emoji
+    const userReaction = message.reactions?.find(
+      r => r.emoji === emoji && r.userId === currentUser?.id
+    );
+    
+    if (userReaction) {
+      // Remove reaction
+      await onReaction(message.id, emoji, 'remove');
+    } else {
+      // Add reaction
+      await onReaction(message.id, emoji, 'add');
+    }
+  };
+
+  const handleReactionClick = async (emoji: string) => {
+    if (!onReaction || !currentUser) return;
+    
+    // Check if user already reacted with this emoji
+    const userReaction = message.reactions?.find(
+      r => r.emoji === emoji && r.userId === currentUser.id
+    );
+    
+    if (userReaction) {
+      // Remove reaction
+      await onReaction(message.id, emoji, 'remove');
+    } else {
+      // Add reaction
+      await onReaction(message.id, emoji, 'add');
+    }
   };
 
   return (
@@ -170,10 +206,49 @@ export function MessageBubble({ message, onReply, onEdit, onDelete }: MessageBub
                     <Trash2 className="h-3 w-3" />
                   </Button>
                 )}
+                {onReaction && (
+                  <EmojiPicker onEmojiSelect={handleEmojiSelect} />
+                )}
               </div>
             </>
           )}
         </div>
+
+        {/* Reactions */}
+        {message.reactions && message.reactions.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-2">
+            {/* Group reactions by emoji */}
+            {Object.entries(
+              message.reactions.reduce((acc, reaction) => {
+                if (!acc[reaction.emoji]) {
+                  acc[reaction.emoji] = [];
+                }
+                acc[reaction.emoji].push(reaction);
+                return acc;
+              }, {} as Record<string, typeof message.reactions>)
+            ).map(([emoji, reactions]) => {
+              const userReacted = reactions.some(r => r.userId === currentUser?.id);
+              return (
+                <Button
+                  key={emoji}
+                  variant="ghost"
+                  size="sm"
+                  className={`h-6 px-2 py-1 text-xs border rounded-full ${
+                    userReacted 
+                      ? 'bg-blue-100 dark:bg-blue-900 border-blue-300 dark:border-blue-700' 
+                      : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600'
+                  } hover:bg-gray-200 dark:hover:bg-gray-700`}
+                  onClick={() => handleReactionClick(emoji)}
+                  disabled={!onReaction}
+                  title={reactions.map(r => r.username).join(', ')}
+                >
+                  <span className="mr-1">{emoji}</span>
+                  <span>{reactions.length}</span>
+                </Button>
+              );
+            })}
+          </div>
+        )}
         
         <div className="flex items-center space-x-2 mt-1">
           {isSent && <span className="text-xs text-gray-400">{timestamp}</span>}
