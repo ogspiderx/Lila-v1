@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { EmojiPicker } from "@/components/emoji-picker";
 import { EnhancedFileAttachment, uploadFile } from "@/components/enhanced-file-attachment";
-import { Users, LogOut, Wifi, Send, X } from "lucide-react";
+import { VoiceRecorder } from "@/components/voice-recorder";
+import { Users, LogOut, Wifi, Send, X, Mic } from "lucide-react";
 
 interface ChatPageProps {
   onLogout: () => void;
@@ -22,6 +23,7 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadedFileData, setUploadedFileData] = useState<{ url: string; name: string; type: string; size: string } | null>(null);
+  const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const typingIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -274,15 +276,59 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
     setMessageText(prev => prev + emoji);
   };
 
+  const handleVoiceRecorded = async (audioBlob: Blob, duration: number) => {
+    if (!otherUserId || !currentUser) return;
+
+    try {
+      // Upload voice file
+      const formData = new FormData();
+      formData.append('voice', audioBlob, `voice-${Date.now()}.webm`);
+      formData.append('duration', duration.toString());
+
+      const token = getStoredToken();
+      const uploadResponse = await fetch('/api/upload/voice', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error('Failed to upload voice message');
+      }
+
+      const { url } = await uploadResponse.json();
+
+      // Send message with voice attachment
+      const messageData = {
+        content: '', // Voice messages can have empty content
+        receiverId: otherUserId,
+        replyToId: replyingTo?.id,
+        voiceMessageUrl: url,
+        voiceMessageDuration: duration.toString(),
+      };
+
+      const success = await sendMessage(messageData);
+      if (success) {
+        setShowVoiceRecorder(false);
+        setReplyingTo(null);
+      }
+    } catch (error) {
+      console.error('Error sending voice message:', error);
+    }
+  };
+
   // Handle scroll to detect when user scrolls to top to load more messages
+  const lastScrollCall = useRef<number>(0);
   const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
 
     // Throttle scroll events for better performance
-    if (handleScroll.lastCall && Date.now() - handleScroll.lastCall < 100) {
+    if (Date.now() - lastScrollCall.current < 100) {
       return;
     }
-    handleScroll.lastCall = Date.now();
+    lastScrollCall.current = Date.now();
 
     // If user scrolls to within 200px of the top and there are more messages to load
     if (scrollTop < 200 && hasMoreMessages && !isLoadingMore) {
@@ -431,6 +477,15 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
               />
             )}
 
+            {/* Voice recorder */}
+            {showVoiceRecorder && (
+              <VoiceRecorder
+                onVoiceRecorded={handleVoiceRecorded}
+                onCancel={() => setShowVoiceRecorder(false)}
+                className="mb-4"
+              />
+            )}
+
             <div className="flex items-end space-x-4">
               <div className="flex-1">
                 <div className="relative">
@@ -460,7 +515,7 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
 
               <div className="flex items-center space-x-2">
                 {/* File attachment button */}
-                {!selectedFile && (
+                {!selectedFile && !showVoiceRecorder && (
                   <EnhancedFileAttachment
                     selectedFile={null}
                     onFileSelect={setSelectedFile}
@@ -469,13 +524,28 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
                   />
                 )}
 
-                <Button
-                  type="submit"
-                  disabled={isDisabled}
-                  className="bg-chat-primary text-white p-3 rounded-2xl hover:bg-emerald-600 focus:ring-2 focus:ring-chat-primary focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Send size={16} />
-                </Button>
+                {/* Voice message button */}
+                {!selectedFile && !showVoiceRecorder && (
+                  <Button
+                    type="button"
+                    onClick={() => setShowVoiceRecorder(true)}
+                    disabled={!isConnected || !isAuthenticated}
+                    className="bg-gray-500 text-white p-3 rounded-2xl hover:bg-gray-600 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Send voice message"
+                  >
+                    <Mic size={16} />
+                  </Button>
+                )}
+
+                {!showVoiceRecorder && (
+                  <Button
+                    type="submit"
+                    disabled={isDisabled}
+                    className="bg-chat-primary text-white p-3 rounded-2xl hover:bg-emerald-600 focus:ring-2 focus:ring-chat-primary focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Send size={16} />
+                  </Button>
+                )}
               </div>
             </div>
           </form>

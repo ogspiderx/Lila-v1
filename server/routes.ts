@@ -268,7 +268,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const token = authHeader.substring(7);
       const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
       
-      const { content, receiverId, replyToId, attachmentUrl, attachmentName, attachmentType, attachmentSize } = insertMessageSchema.parse(req.body);
+      const { content, receiverId, replyToId, attachmentUrl, attachmentName, attachmentType, attachmentSize, voiceMessageUrl, voiceMessageDuration } = insertMessageSchema.parse(req.body);
       
       // Sanitize content
       const sanitizedContent = content.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
@@ -282,6 +282,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         attachmentName,
         attachmentType,
         attachmentSize,
+        voiceMessageUrl,
+        voiceMessageDuration,
       });
 
       const sender = await storage.getUser(decoded.userId);
@@ -504,6 +506,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error uploading file:', error);
       res.status(500).json({ message: "Failed to upload file" });
+    }
+  });
+
+  // Voice message upload route
+  app.post("/api/upload/voice", upload.single('voice'), async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith("Bearer ")) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const token = authHeader.substring(7);
+      jwt.verify(token, JWT_SECRET) as { userId: string };
+
+      if (!req.file) {
+        return res.status(400).json({ message: "No voice file uploaded" });
+      }
+
+      // Validate that it's an audio file
+      if (!req.file.mimetype.startsWith('audio/')) {
+        return res.status(400).json({ message: "File must be an audio file" });
+      }
+
+      const voiceUrl = `/api/files/${req.file.filename}`;
+      const duration = parseInt(req.body.duration) || 0;
+
+      res.json({
+        url: voiceUrl,
+        duration: duration
+      });
+    } catch (error) {
+      console.error('Error uploading voice file:', error);
+      res.status(500).json({ message: "Failed to upload voice file" });
     }
   });
 

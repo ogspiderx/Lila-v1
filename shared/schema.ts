@@ -22,6 +22,8 @@ export const messages = pgTable("messages", {
   attachmentName: text("attachment_name"),
   attachmentType: text("attachment_type"),
   attachmentSize: varchar("attachment_size"),
+  voiceMessageUrl: text("voice_message_url"),
+  voiceMessageDuration: varchar("voice_message_duration"),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -37,12 +39,16 @@ export const insertMessageSchema = createInsertSchema(messages).pick({
   attachmentName: true,
   attachmentType: true,
   attachmentSize: true,
+  voiceMessageUrl: true,
+  voiceMessageDuration: true,
 }).extend({
   replyToId: z.string().optional(),
   attachmentUrl: z.string().optional(),
   attachmentName: z.string().optional(),
   attachmentType: z.string().optional(),
   attachmentSize: z.string().optional(),
+  voiceMessageUrl: z.string().optional(),
+  voiceMessageDuration: z.string().optional(),
 });
 
 export const loginSchema = z.object({

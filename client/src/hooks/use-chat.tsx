@@ -15,6 +15,8 @@ export interface Message {
   attachmentName?: string | null;
   attachmentType?: string | null;
   attachmentSize?: string | null;
+  voiceMessageUrl?: string | null;
+  voiceMessageDuration?: string | null;
   reactions?: Array<{
     id: string;
     emoji: string;

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EmojiPicker } from "@/components/emoji-picker";
 import { FileDisplay } from "@/components/enhanced-file-attachment";
+import { VoiceMessagePlayer } from "@/components/voice-message-player";
 import { useState } from "react";
 
 interface MessageBubbleProps {
@@ -214,6 +215,16 @@ export function MessageBubble({ message, onReply, onEdit, onDelete, onReaction }
                 )}
               </div>
               
+              {/* Voice message display */}
+              {message.voiceMessageUrl && message.voiceMessageDuration && (
+                <VoiceMessagePlayer 
+                  voiceUrl={message.voiceMessageUrl}
+                  duration={parseInt(message.voiceMessageDuration)}
+                  variant={isSent ? 'sent' : 'received'}
+                  className="mt-2"
+                />
+              )}
+
               {/* File attachment display */}
               {message.attachmentUrl && message.attachmentName && message.attachmentType && message.attachmentSize && (
                 <FileDisplay
