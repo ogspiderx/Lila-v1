@@ -1,6 +1,6 @@
 import { Message } from "@/hooks/use-chat";
 import { getStoredUser } from "@/lib/auth";
-import { Reply, Check, CheckCheck, Edit3, X, Check as CheckIcon, Trash2 } from "lucide-react";
+import { Reply, Check, CheckCheck, Edit3, X, Check as CheckIcon, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -23,6 +23,7 @@ export function MessageBubble({ message, onReply, onEdit, onDelete, onReaction }
   const [editContent, setEditContent] = useState(message.content);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const timestamp = new Date(message.timestamp).toLocaleTimeString([], {
     hour: '2-digit',
@@ -176,12 +177,42 @@ export function MessageBubble({ message, onReply, onEdit, onDelete, onReaction }
             </div>
           ) : (
             <>
-              <p className="text-gray-900 break-words">
-                {message.content}
+              <div className="text-gray-900 break-words">
+                {(() => {
+                  const MAX_LENGTH = 300;
+                  const isLongMessage = message.content.length > MAX_LENGTH;
+                  const shouldTruncate = isLongMessage && !isExpanded;
+                  const displayContent = shouldTruncate 
+                    ? message.content.substring(0, MAX_LENGTH) + "..."
+                    : message.content;
+
+                  return (
+                    <>
+                      <p>{displayContent}</p>
+                      {isLongMessage && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="mt-1 p-0 h-auto text-blue-600 hover:text-blue-800 hover:bg-transparent"
+                          onClick={() => setIsExpanded(!isExpanded)}
+                        >
+                          <span className="text-sm font-medium">
+                            {isExpanded ? "Show less" : "Read more"}
+                          </span>
+                          {isExpanded ? (
+                            <ChevronUp className="h-3 w-3 ml-1" />
+                          ) : (
+                            <ChevronDown className="h-3 w-3 ml-1" />
+                          )}
+                        </Button>
+                      )}
+                    </>
+                  );
+                })()}
                 {message.editedAt && (
                   <span className="text-xs text-gray-400 ml-2">(edited)</span>
                 )}
-              </p>
+              </div>
               
               {/* File attachment display */}
               {message.attachmentUrl && message.attachmentName && message.attachmentType && message.attachmentSize && (
