@@ -7,7 +7,7 @@ import { TypingIndicator } from "@/components/typing-indicator";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { EmojiPicker } from "@/components/emoji-picker";
-import { FileAttachment } from "@/components/file-attachment";
+import { EnhancedFileAttachment, uploadFile } from "@/components/enhanced-file-attachment";
 import { Users, LogOut, Wifi, Send, X } from "lucide-react";
 
 interface ChatPageProps {
@@ -18,7 +18,10 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
   const [messageText, setMessageText] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
-  const [selectedFile, setSelectedFile] = useState<{ url: string; name: string; type: string; size: string } | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadedFileData, setUploadedFileData] = useState<{ url: string; name: string; type: string; size: string } | null>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const typingIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -148,18 +151,39 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
     }
   };
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     const content = messageText.trim();
     if ((!content && !selectedFile) || (content && content.length > 5000) || !otherUserId || !isAuthenticated) return;
 
     const messageContent = content || (selectedFile ? "📎 File attachment" : "");
-    const fileAttachment = selectedFile;
+    let fileAttachment = uploadedFileData;
+    
+    // If there's a selected file but no uploaded data, upload it first
+    if (selectedFile && !uploadedFileData) {
+      try {
+        setIsUploading(true);
+        setUploadProgress(0);
+        
+        fileAttachment = await uploadFile(selectedFile, (progress) => {
+          setUploadProgress(progress);
+        });
+        
+        setUploadedFileData(fileAttachment);
+      } catch (error) {
+        console.error('Upload error:', error);
+        setIsUploading(false);
+        return;
+      }
+      setIsUploading(false);
+    }
     
     sendMessage(messageContent, otherUserId, replyingTo?.id, fileAttachment);
     setMessageText("");
     setReplyingTo(null);
     setSelectedFile(null);
+    setUploadedFileData(null);
+    setUploadProgress(0);
     handleStopTyping();
   };
 
@@ -213,7 +237,7 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       if ((messageText.trim() || selectedFile) && messageText.length <= 5000) {
-        handleSendMessage(e);
+        handleSendMessage(e as any);
       }
     }
   };
@@ -254,7 +278,7 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
   };
 
   const charCount = messageText.length;
-  const isDisabled = (!messageText.trim() && !selectedFile) || charCount > 5000 || !isConnected || !isAuthenticated || !otherUserId;
+  const isDisabled = (!messageText.trim() && !selectedFile) || charCount > 5000 || !isConnected || !isAuthenticated || !otherUserId || isUploading;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -365,11 +389,17 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
           <form onSubmit={handleSendMessage} className="flex flex-col space-y-4">
             {/* File attachment preview */}
             {selectedFile && (
-              <FileAttachment
+              <EnhancedFileAttachment
                 selectedFile={selectedFile}
                 onFileSelect={setSelectedFile}
-                onRemove={() => setSelectedFile(null)}
+                onRemove={() => {
+                  setSelectedFile(null);
+                  setUploadedFileData(null);
+                  setUploadProgress(0);
+                }}
                 disabled={!isConnected}
+                uploadProgress={uploadProgress}
+                isUploading={isUploading}
               />
             )}
 
@@ -403,7 +433,7 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
               <div className="flex items-center space-x-2">
                 {/* File attachment button */}
                 {!selectedFile && (
-                  <FileAttachment
+                  <EnhancedFileAttachment
                     selectedFile={null}
                     onFileSelect={setSelectedFile}
                     onRemove={() => setSelectedFile(null)}

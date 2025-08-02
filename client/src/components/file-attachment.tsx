@@ -1,21 +1,25 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Upload, X, File, Image, FileText, Download, Music, Video, Archive, Code } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { Upload, X, File, Image, FileText, Download, Music, Video, Archive, Code, Paperclip } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ImageViewer } from "@/components/image-viewer";
 import { LazyImage } from "@/components/lazy-image";
 
 interface FileAttachmentProps {
-  onFileSelect: (fileData: { url: string; name: string; type: string; size: string }) => void;
+  onFileSelect: (file: File) => void;
   onRemove: () => void;
-  selectedFile?: { url: string; name: string; type: string; size: string } | null;
+  selectedFile?: File | null;
   disabled?: boolean;
+  uploadProgress?: number;
+  isUploading?: boolean;
 }
 
-export function FileAttachment({ onFileSelect, onRemove, selectedFile, disabled }: FileAttachmentProps) {
-  const [uploading, setUploading] = useState(false);
+export function FileAttachment({ onFileSelect, onRemove, selectedFile, disabled, uploadProgress = 0, isUploading = false }: FileAttachmentProps) {
+  const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const dropZoneRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -32,7 +36,7 @@ export function FileAttachment({ onFileSelect, onRemove, selectedFile, disabled 
       return;
     }
 
-    setUploading(true);
+    // This file is deprecated - use enhanced-file-attachment.tsx instead
 
     try {
       const formData = new FormData();
@@ -70,7 +74,7 @@ export function FileAttachment({ onFileSelect, onRemove, selectedFile, disabled 
         variant: "destructive",
       });
     } finally {
-      setUploading(false);
+      // This file is deprecated
       // Reset file input
       if (fileInputRef.current) {
         fileInputRef.current.value = '';

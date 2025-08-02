@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EmojiPicker } from "@/components/emoji-picker";
-import { FileDisplay } from "@/components/file-attachment";
+import { FileDisplay } from "@/components/enhanced-file-attachment";
 import { useState } from "react";
 
 interface MessageBubbleProps {
