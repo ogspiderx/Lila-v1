@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Upload, X, File, Image, FileText, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { ImageViewer } from "@/components/image-viewer";
 
 interface FileAttachmentProps {
   onFileSelect: (fileData: { url: string; name: string; type: string; size: string }) => void;
@@ -149,6 +150,7 @@ interface FileDisplayProps {
 }
 
 export function FileDisplay({ attachment }: FileDisplayProps) {
+  const [isViewerOpen, setIsViewerOpen] = useState(false);
   const isImage = attachment.type.startsWith('image/');
 
   const handleDownload = () => {
@@ -160,26 +162,35 @@ export function FileDisplay({ attachment }: FileDisplayProps) {
 
   if (isImage) {
     return (
-      <div className="mt-2 max-w-sm">
-        <img
-          src={attachment.url}
-          alt={attachment.name}
-          className="rounded-lg border max-h-48 w-auto cursor-pointer hover:opacity-90 transition-opacity"
-          onClick={() => window.open(attachment.url, '_blank')}
-        />
-        <div className="flex items-center justify-between mt-1 text-xs text-gray-500">
-          <span className="truncate flex-1">{attachment.name}</span>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleDownload}
-            className="h-6 w-6 p-0 ml-2"
-            title="Download"
-          >
-            <Download size={12} />
-          </Button>
+      <>
+        <div className="mt-2 max-w-sm">
+          <img
+            src={attachment.url}
+            alt={attachment.name}
+            className="rounded-lg border max-h-48 w-auto cursor-pointer hover:opacity-90 transition-opacity"
+            onClick={() => setIsViewerOpen(true)}
+          />
+          <div className="flex items-center justify-between mt-1 text-xs text-gray-500">
+            <span className="truncate flex-1">{attachment.name}</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleDownload}
+              className="h-6 w-6 p-0 ml-2"
+              title="Download"
+            >
+              <Download size={12} />
+            </Button>
+          </div>
         </div>
-      </div>
+        
+        <ImageViewer
+          isOpen={isViewerOpen}
+          onClose={() => setIsViewerOpen(false)}
+          imageUrl={attachment.url}
+          imageName={attachment.name}
+        />
+      </>
     );
   }
 
