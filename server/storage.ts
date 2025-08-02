@@ -68,19 +68,23 @@ export class MemStorage implements IStorage {
       content: message.content,
       senderId: message.senderId,
       receiverId: message.receiverId,
-      timestamp: new Date(),
+      timestamp: new Date().toISOString(),
     };
     this.messages.set(id, newMessage);
+    console.log('Created message:', newMessage);
     return newMessage;
   }
 
   async getMessagesBetweenUsers(user1Id: string, user2Id: string): Promise<Message[]> {
-    return Array.from(this.messages.values())
+    const filteredMessages = Array.from(this.messages.values())
       .filter(message => 
         (message.senderId === user1Id && message.receiverId === user2Id) ||
         (message.senderId === user2Id && message.receiverId === user1Id)
       )
-      .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    
+    console.log('Retrieved messages:', filteredMessages.length);
+    return filteredMessages;
   }
 }
 

@@ -114,6 +114,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // POST route for sending messages via HTTP
+  app.post("/api/messages", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith("Bearer ")) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const token = authHeader.substring(7);
+      const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+      
+      const { content, receiverId } = insertMessageSchema.parse(req.body);
+      
+      // Sanitize content
+      const sanitizedContent = content.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+      
+      const newMessage = await storage.createMessage({
+        content: sanitizedContent,
+        senderId: decoded.userId,
+        receiverId,
+      });
+
+      const sender = await storage.getUser(decoded.userId);
+      const messageWithUsername = {
+        ...newMessage,
+        senderUsername: sender?.username || "Unknown",
+      };
+
+      res.json(messageWithUsername);
+    } catch (error) {
+      console.error('Error creating message:', error);
+      res.status(400).json({ message: "Invalid request" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   // WebSocket server setup
