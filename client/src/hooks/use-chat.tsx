@@ -67,13 +67,13 @@ export function useChat() {
     }
   }, []);
 
-  // Load initial messages with pagination
+  // Load initial messages with pagination (reduced initial load)
   const loadInitialMessages = useCallback(async () => {
     try {
       const token = getStoredToken();
       if (!token) return;
 
-      const response = await fetch('/api/messages/paginated?limit=20&offset=0', {
+      const response = await fetch('/api/messages/paginated?limit=10&offset=0', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -89,7 +89,7 @@ export function useChat() {
     }
   }, []);
 
-  // Load more messages (for pagination)
+  // Load more messages (for pagination) with smaller batches
   const loadMoreMessages = useCallback(async () => {
     if (isLoadingMore || !hasMoreMessages) return;
 
@@ -98,7 +98,7 @@ export function useChat() {
       const token = getStoredToken();
       if (!token) return;
 
-      const response = await fetch(`/api/messages/paginated?limit=20&offset=${messages.length}`, {
+      const response = await fetch(`/api/messages/paginated?limit=10&offset=${messages.length}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },

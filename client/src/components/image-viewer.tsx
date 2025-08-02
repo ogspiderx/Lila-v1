@@ -1,5 +1,8 @@
 
-import { useState, useEffect } from "react";
+<old_str>import { useState, useEffect, useRef } from "react";
+import { Button } from "@/components/ui/button";
+import { X, ZoomIn, ZoomOut, RotateCw, Download } from "lucide-react";</old_str>
+<new_str>import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { X, ZoomIn, ZoomOut, RotateCw, Download } from "lucide-react";
 
@@ -8,101 +11,130 @@ interface ImageViewerProps {
   onClose: () => void;
   imageUrl: string;
   imageName: string;
-  images?: Array<{ url: string; name: string }>;
-  currentIndex?: number;
-  onNavigate?: (index: number) => void;
 }
 
-export function ImageViewer({ 
-  isOpen, 
-  onClose, 
-  imageUrl, 
-  imageName, 
-  images = [], 
-  currentIndex = 0, 
-  onNavigate 
-}: ImageViewerProps) {
+export function ImageViewer({ isOpen, onClose, imageUrl, imageName }: ImageViewerProps) {
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [lastPosition, setLastPosition] = useState({ x: 0, y: 0 });
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const imageRef = useRef<HTMLImageElement>(null);
 
-  // Reset zoom and position when image changes
   useEffect(() => {
     if (isOpen) {
+      // Reset state when opening
       setZoom(1);
       setRotation(0);
       setPosition({ x: 0, y: 0 });
+      setIsLoaded(false);
+      setIsLoading(true);
+      
+      // Preload image
+      const img = new Image();
+      img.onload = () => {
+        setIsLoaded(true);
+        setIsLoading(false);
+      };
+      img.onerror = () => {
+        setIsLoading(false);
+      };
+      img.src = imageUrl;
     }
-  }, [imageUrl, isOpen]);
+  }, [isOpen, imageUrl]);
 
-  // Handle keyboard shortcuts
   useEffect(() => {
-    if (!isOpen) return;
-
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (!isOpen) return;
+
       switch (e.key) {
         case 'Escape':
           onClose();
           break;
-        case '=':
         case '+':
-          e.preventDefault();
-          setZoom(prev => Math.min(prev * 1.2, 5));
+        case '=':
+          handleZoomIn();
           break;
         case '-':
-          e.preventDefault();
-          setZoom(prev => Math.max(prev / 1.2, 0.1));
-          break;
-        case '0':
-          e.preventDefault();
-          setZoom(1);
-          setPosition({ x: 0, y: 0 });
-          setRotation(0);
+          handleZoomOut();
           break;
         case 'r':
-          e.preventDefault();
-          setRotation(prev => (prev + 90) % 360);
+        case 'R':
+          handleRotate();
           break;
-        case 'ArrowLeft':
-          if (images.length > 1 && onNavigate && currentIndex > 0) {
-            e.preventDefault();
-            onNavigate(currentIndex - 1);
-          }
-          break;
-        case 'ArrowRight':
-          if (images.length > 1 && onNavigate && currentIndex < images.length - 1) {
-            e.preventDefault();
-            onNavigate(currentIndex + 1);
-          }
+        case '0':
+          handleReset();
           break;
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose, zoom, images.length, currentIndex, onNavigate]);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
+
+  const handleZoomIn = () => {
+    setZoom(prev => Math.min(prev * 1.2, 5));
+  };
+
+  const handleZoomOut = () => {
+    setZoom(prev => Math.max(prev / 1.2, 0.1));
+  };
+
+  const handleRotate = () => {
+    setRotation(prev => (prev + 90) % 360);
+  };
+
+  const handleReset = () => {
+    setZoom(1);
+    setRotation(0);
+    setPosition({ x: 0, y: 0 });
+  };
 
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) return; // Only allow dragging on the image
+    e.preventDefault();
     setIsDragging(true);
-    setDragStart({
-      x: e.clientX - position.x,
-      y: e.clientY - position.y
-    });
+    setLastPosition({ x: e.clientX, y: e.clientY });
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!isDragging) return;
-    setPosition({
-      x: e.clientX - dragStart.x,
-      y: e.clientY - dragStart.y
-    });
+
+    const deltaX = e.clientX - lastPosition.x;
+    const deltaY = e.clientY - lastPosition.y;
+
+    setPosition(prev => ({
+      x: prev.x + deltaX,
+      y: prev.y + deltaY
+    }));
+
+    setLastPosition({ x: e.clientX, y: e.clientY });
   };
 
   const handleMouseUp = () => {
     setIsDragging(false);
+  };
+
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    if (e.deltaY < 0) {
+      handleZoomIn();
+    } else {
+      handleZoomOut();
+    }
   };
 
   const handleDownload = () => {
@@ -110,15 +142,6 @@ export function ImageViewer({
     link.href = imageUrl;
     link.download = imageName;
     link.click();
-  };
-
-  const handleZoomIn = () => setZoom(prev => Math.min(prev * 1.2, 5));
-  const handleZoomOut = () => setZoom(prev => Math.max(prev / 1.2, 0.1));
-  const handleRotate = () => setRotation(prev => (prev + 90) % 360);
-  const handleReset = () => {
-    setZoom(1);
-    setPosition({ x: 0, y: 0 });
-    setRotation(0);
   };
 
   if (!isOpen) return null;
@@ -129,11 +152,6 @@ export function ImageViewer({
       <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-10">
         <div className="text-white text-sm truncate max-w-md">
           {imageName}
-          {images.length > 1 && (
-            <span className="ml-2 text-gray-300">
-              ({currentIndex + 1} of {images.length})
-            </span>
-          )}
         </div>
         <div className="flex items-center space-x-2">
           <Button
@@ -177,68 +195,60 @@ export function ImageViewer({
             size="sm"
             onClick={onClose}
             className="text-white hover:bg-white/20"
-            title="Close (Esc)"
+            title="Close (ESC)"
           >
             <X size={16} />
           </Button>
         </div>
       </div>
 
-      {/* Navigation arrows */}
-      {images.length > 1 && onNavigate && (
-        <>
-          {currentIndex > 0 && (
-            <Button
-              variant="ghost"
-              size="lg"
-              onClick={() => onNavigate(currentIndex - 1)}
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 z-10"
-              title="Previous image (←)"
-            >
-              ←
-            </Button>
-          )}
-          {currentIndex < images.length - 1 && (
-            <Button
-              variant="ghost"
-              size="lg"
-              onClick={() => onNavigate(currentIndex + 1)}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 z-10"
-              title="Next image (→)"
-            >
-              →
-            </Button>
-          )}
-        </>
+      {/* Loading indicator */}
+      {isLoading && (
+        <div className="flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+          <span className="ml-3 text-white">Loading image...</span>
+        </div>
       )}
 
       {/* Image container */}
-      <div
-        className="w-full h-full flex items-center justify-center cursor-move"
-        onClick={(e) => e.target === e.currentTarget && onClose()}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-      >
-        <img
-          src={imageUrl}
-          alt={imageName}
-          className="max-w-none max-h-none object-contain select-none"
-          style={{
-            transform: `scale(${zoom}) rotate(${rotation}deg) translate(${position.x / zoom}px, ${position.y / zoom}px)`,
-            cursor: isDragging ? 'grabbing' : 'grab'
-          }}
-          onMouseDown={handleMouseDown}
-          onDoubleClick={handleReset}
-          draggable={false}
-        />
-      </div>
+      {isLoaded && (
+        <div
+          className="w-full h-full flex items-center justify-center cursor-move"
+          onClick={(e) => e.target === e.currentTarget && onClose()}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+          onWheel={handleWheel}
+        >
+          <img
+            ref={imageRef}
+            src={imageUrl}
+            alt={imageName}
+            className="max-w-none max-h-none object-contain select-none"
+            style={{
+              transform: `scale(${zoom}) rotate(${rotation}deg) translate(${position.x / zoom}px, ${position.y / zoom}px)`,
+              cursor: isDragging ? 'grabbing' : 'grab'
+            }}
+            onMouseDown={handleMouseDown}
+            onDoubleClick={handleReset}
+            draggable={false}
+          />
+        </div>
+      )}
+
+      {/* Error state */}
+      {!isLoading && !isLoaded && (
+        <div className="flex flex-col items-center justify-center text-white">
+          <X size={48} className="mb-4 text-red-400" />
+          <span>Failed to load image</span>
+        </div>
+      )}
 
       {/* Footer with controls info */}
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white text-xs text-center opacity-75">
         <div>Double-click to reset • Drag to pan • Scroll or +/- to zoom</div>
-        <div>R to rotate • ← → to navigate • ESC to close</div>
+        <div>R to rotate • 0 to reset • ESC to close</div>
       </div>
     </div>
   );
-}
+}</new_str>

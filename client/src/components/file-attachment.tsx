@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Upload, X, File, Image, FileText, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ImageViewer } from "@/components/image-viewer";
+import { LazyImage } from "@/components/lazy-image";
 
 interface FileAttachmentProps {
   onFileSelect: (fileData: { url: string; name: string; type: string; size: string }) => void;
@@ -164,7 +165,7 @@ export function FileDisplay({ attachment }: FileDisplayProps) {
     return (
       <>
         <div className="mt-2 max-w-sm">
-          <img
+          <LazyImage
             src={attachment.url}
             alt={attachment.name}
             className="rounded-lg border max-h-48 w-auto cursor-pointer hover:opacity-90 transition-opacity"

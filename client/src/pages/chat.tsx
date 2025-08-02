@@ -224,12 +224,18 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
 
   // Handle scroll to detect when user scrolls to top to load more messages
   const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
-    const { scrollTop } = e.currentTarget;
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
 
-    // If user scrolls to within 100px of the top and there are more messages to load
-    if (scrollTop < 100 && hasMoreMessages && !isLoadingMore) {
+    // Throttle scroll events for better performance
+    if (handleScroll.lastCall && Date.now() - handleScroll.lastCall < 100) {
+      return;
+    }
+    handleScroll.lastCall = Date.now();
+
+    // If user scrolls to within 200px of the top and there are more messages to load
+    if (scrollTop < 200 && hasMoreMessages && !isLoadingMore) {
       // Store current scroll height to restore position after loading
-      const currentScrollHeight = e.currentTarget.scrollHeight;
+      const currentScrollHeight = scrollHeight;
 
       loadMoreMessages().then(() => {
         // Restore scroll position after new messages are loaded
