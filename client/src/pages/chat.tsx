@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getStoredUser, getStoredToken, logout } from "@/lib/auth";
 import { useChat } from "@/hooks/use-chat";
