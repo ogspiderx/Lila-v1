@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getStoredUser, getStoredToken, logout } from "@/lib/auth";
 import { useChat } from "@/hooks/use-chat";
@@ -18,10 +18,10 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
   const [isTyping, setIsTyping] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
+
   const currentUser = getStoredUser();
   const token = getStoredToken();
-  
+
   const {
     isConnected,
     isAuthenticated,
@@ -99,7 +99,7 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
 
   const handleTyping = (value: string) => {
     setMessageText(value);
-    
+
     if (!isTyping && value.length > 0 && otherUserId && isAuthenticated) {
       setIsTyping(true);
       sendTyping();
@@ -141,12 +141,12 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
   // Handle scroll to detect when user scrolls to top to load more messages
   const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
     const { scrollTop } = e.currentTarget;
-    
+
     // If user scrolls to within 100px of the top and there are more messages to load
     if (scrollTop < 100 && hasMoreMessages && !isLoadingMore) {
       // Store current scroll height to restore position after loading
       const currentScrollHeight = e.currentTarget.scrollHeight;
-      
+
       loadMoreMessages().then(() => {
         // Restore scroll position after new messages are loaded
         if (messagesContainerRef.current) {
@@ -187,7 +187,7 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
               </div>
             </div>
           </div>
-          
+
           <div className="flex items-center space-x-4">
             <div className="text-sm text-gray-500 flex items-center">
               <Users className="mr-1" size={16} />
@@ -222,7 +222,7 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
               </div>
             </div>
           )}
-          
+
           {/* No more messages indicator */}
           {!hasMoreMessages && messages.length > 0 && (
             <div className="flex justify-center py-2">
@@ -233,7 +233,7 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
           {messages.map((message) => (
             <MessageBubble key={message.id} message={message} />
           ))}
-          
+
           {typingStatus && typingStatus.isTyping && (
             <TypingIndicator typingStatus={typingStatus} />
           )}
@@ -254,10 +254,10 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
                   rows={1}
                   disabled={!isConnected}
                 />
-                
+
                 <EmojiPicker onEmojiSelect={handleEmojiSelect} />
               </div>
-              
+
               <div className="flex justify-between items-center mt-2 px-2">
                 <div className="text-xs text-gray-400">
                   <span className={charCount > 500 ? 'text-red-500' : ''}>{charCount}</span>/500
@@ -267,7 +267,7 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
                 </div>
               </div>
             </div>
-            
+
             <Button
               type="submit"
               disabled={isDisabled}
