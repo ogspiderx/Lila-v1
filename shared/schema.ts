@@ -18,6 +18,10 @@ export const messages = pgTable("messages", {
   timestamp: timestamp("timestamp").notNull().defaultNow(),
   seenAt: timestamp("seen_at"),
   editedAt: timestamp("edited_at"),
+  attachmentUrl: text("attachment_url"),
+  attachmentName: text("attachment_name"),
+  attachmentType: text("attachment_type"),
+  attachmentSize: varchar("attachment_size"),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -29,8 +33,16 @@ export const insertMessageSchema = createInsertSchema(messages).pick({
   content: true,
   receiverId: true,
   replyToId: true,
+  attachmentUrl: true,
+  attachmentName: true,
+  attachmentType: true,
+  attachmentSize: true,
 }).extend({
   replyToId: z.string().optional(),
+  attachmentUrl: z.string().optional(),
+  attachmentName: z.string().optional(),
+  attachmentType: z.string().optional(),
+  attachmentSize: z.string().optional(),
 });
 
 export const loginSchema = z.object({

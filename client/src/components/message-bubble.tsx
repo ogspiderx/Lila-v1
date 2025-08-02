@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EmojiPicker } from "@/components/emoji-picker";
+import { FileDisplay } from "@/components/file-attachment";
 import { useState } from "react";
 
 interface MessageBubbleProps {
@@ -181,6 +182,18 @@ export function MessageBubble({ message, onReply, onEdit, onDelete, onReaction }
                   <span className="text-xs text-gray-400 ml-2">(edited)</span>
                 )}
               </p>
+              
+              {/* File attachment display */}
+              {message.attachmentUrl && message.attachmentName && message.attachmentType && message.attachmentSize && (
+                <FileDisplay
+                  attachment={{
+                    url: message.attachmentUrl,
+                    name: message.attachmentName,
+                    type: message.attachmentType,
+                    size: message.attachmentSize,
+                  }}
+                />
+              )}
 
               {/* Action buttons */}
               <div className="absolute -right-2 -bottom-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">

@@ -40,6 +40,17 @@ This is a modern, full-stack real-time chat application that demonstrates the po
 
 **Preferred communication style:** Simple, everyday language that's easy to understand.
 
+## Recent Changes
+
+**File Attachment Feature (August 2, 2025):**
+- Added comprehensive file upload functionality to the chat application
+- Backend: Created multer-based file upload API with 10MB file size limit
+- Supported file types: images, PDFs, documents, text files, spreadsheets
+- Frontend: Created FileAttachment component with drag-and-drop interface
+- File preview and download capabilities for all attachment types
+- Integrated file attachments into message system with attachment metadata storage
+- Updated database schema to support file attachment fields (attachmentUrl, attachmentName, attachmentType, attachmentSize)
+
 ## System Architecture
 
 ### Frontend Architecture

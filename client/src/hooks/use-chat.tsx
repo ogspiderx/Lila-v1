@@ -11,6 +11,11 @@ export interface Message {
   seenAt?: string | null;
   editedAt?: string | null;
   senderUsername: string;
+  attachmentUrl?: string | null;
+  attachmentName?: string | null;
+  attachmentType?: string | null;
+  attachmentSize?: string | null;
+  reactions?: Array<{ emoji: string; userId: string; username: string }>;
   repliedMessage?: {
     id: string;
     content: string;
@@ -242,10 +247,23 @@ export function useChat() {
     setTypingStatus(null);
   }, []);
 
-  const sendMessage = useCallback(async (content: string, receiverId: string, replyToId?: string) => {
+  const sendMessage = useCallback(async (content: string, receiverId: string, replyToId?: string, fileAttachment?: {url: string; name: string; type: string; size: string} | null) => {
     try {
       const token = getStoredToken();
       if (!token) return;
+
+      const messageData: any = {
+        content,
+        receiverId,
+        replyToId,
+      };
+
+      if (fileAttachment) {
+        messageData.attachmentUrl = fileAttachment.url;
+        messageData.attachmentName = fileAttachment.name;
+        messageData.attachmentType = fileAttachment.type;
+        messageData.attachmentSize = fileAttachment.size;
+      }
 
       const response = await fetch('/api/messages', {
         method: 'POST',
@@ -253,11 +271,7 @@ export function useChat() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          content,
-          receiverId,
-          replyToId,
-        }),
+        body: JSON.stringify(messageData),
       });
 
       if (response.ok) {

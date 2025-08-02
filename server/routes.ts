@@ -6,11 +6,56 @@ import { loginSchema, insertMessageSchema, editMessageSchema, reactionSchema } f
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { z } from "zod";
+import multer from "multer";
+import path from "path";
+import fs from "fs/promises";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 
 // WebSocket connection tracking
 const connections = new Map<string, WebSocket>();
+
+// Configure multer for file uploads
+const storage_multer = multer.diskStorage({
+  destination: async (req, file, cb) => {
+    const uploadDir = 'uploads';
+    try {
+      await fs.access(uploadDir);
+    } catch {
+      await fs.mkdir(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    // Generate unique filename with timestamp and random string
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({
+  storage: storage_multer,
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    // Allow images, documents, and text files
+    const allowedTypes = [
+      'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+      'application/pdf', 'application/msword', 
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain', 'text/csv',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    ];
+    
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only images, PDFs, documents, and text files are allowed.'));
+    }
+  }
+});
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize default users
@@ -204,7 +249,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const token = authHeader.substring(7);
       const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
       
-      const { content, receiverId, replyToId } = insertMessageSchema.parse(req.body);
+      const { content, receiverId, replyToId, attachmentUrl, attachmentName, attachmentType, attachmentSize } = insertMessageSchema.parse(req.body);
       
       // Sanitize content
       const sanitizedContent = content.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
@@ -214,6 +259,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         senderId: decoded.userId,
         receiverId,
         replyToId,
+        attachmentUrl,
+        attachmentName,
+        attachmentType,
+        attachmentSize,
       });
 
       const sender = await storage.getUser(decoded.userId);
@@ -407,6 +456,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.status(500).json({ message: "Failed to remove reaction" });
     }
+  });
+
+  // File upload route
+  app.post("/api/upload", upload.single('file'), async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith("Bearer ")) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const token = authHeader.substring(7);
+      jwt.verify(token, JWT_SECRET) as { userId: string };
+
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      const fileUrl = `/api/files/${req.file.filename}`;
+      const fileSize = (req.file.size / 1024).toFixed(2) + ' KB';
+
+      res.json({
+        url: fileUrl,
+        name: req.file.originalname,
+        type: req.file.mimetype,
+        size: fileSize
+      });
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      res.status(500).json({ message: "Failed to upload file" });
+    }
+  });
+
+  // File serving route
+  app.get("/api/files/:filename", (req, res) => {
+    const filename = req.params.filename;
+    const filePath = path.join(process.cwd(), 'uploads', filename);
+    
+    res.sendFile(filePath, (err) => {
+      if (err) {
+        console.error('Error serving file:', err);
+        res.status(404).json({ message: "File not found" });
+      }
+    });
   });
 
   const httpServer = createServer(app);

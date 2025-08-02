@@ -88,6 +88,10 @@ export class MemStorage implements IStorage {
       timestamp: new Date(),
       seenAt: null,
       editedAt: null,
+      attachmentUrl: message.attachmentUrl || null,
+      attachmentName: message.attachmentName || null,
+      attachmentType: message.attachmentType || null,
+      attachmentSize: message.attachmentSize || null,
     };
     this.messages.set(id, newMessage);
     console.log('Created message:', newMessage);

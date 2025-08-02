@@ -7,6 +7,7 @@ import { TypingIndicator } from "@/components/typing-indicator";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { EmojiPicker } from "@/components/emoji-picker";
+import { FileAttachment } from "@/components/file-attachment";
 import { Users, LogOut, Wifi, Send, X } from "lucide-react";
 
 interface ChatPageProps {
@@ -17,6 +18,7 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
   const [messageText, setMessageText] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
+  const [selectedFile, setSelectedFile] = useState<{ url: string; name: string; type: string; size: string } | null>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const typingIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -149,11 +151,15 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     const content = messageText.trim();
-    if (!content || content.length > 500 || !otherUserId || !isAuthenticated) return;
+    if ((!content && !selectedFile) || (!content && content.length > 500) || !otherUserId || !isAuthenticated) return;
 
-    sendMessage(content, otherUserId, replyingTo?.id);
+    const messageContent = content || (selectedFile ? "📎 File attachment" : "");
+    const fileAttachment = selectedFile;
+    
+    sendMessage(messageContent, otherUserId, replyingTo?.id, fileAttachment);
     setMessageText("");
     setReplyingTo(null);
+    setSelectedFile(null);
     handleStopTyping();
   };
 
@@ -242,7 +248,7 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
   };
 
   const charCount = messageText.length;
-  const isDisabled = !messageText.trim() || charCount > 500 || !isConnected || !isAuthenticated || !otherUserId;
+  const isDisabled = (!messageText.trim() && !selectedFile) || charCount > 500 || !isConnected || !isAuthenticated || !otherUserId;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -350,40 +356,64 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
             </div>
           )}
           
-          <form onSubmit={handleSendMessage} className="flex items-end space-x-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Textarea
-                  value={messageText}
-                  onChange={(e) => handleTyping(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  onBlur={handleStopTyping}
-                  className="w-full resize-none border border-gray-300 rounded-2xl px-4 py-3 pr-12 focus:ring-2 focus:ring-chat-primary focus:border-transparent transition-all max-h-32"
-                  placeholder="Type your message..."
-                  rows={1}
-                  disabled={!isConnected}
-                />
+          <form onSubmit={handleSendMessage} className="flex flex-col space-y-4">
+            {/* File attachment preview */}
+            {selectedFile && (
+              <FileAttachment
+                selectedFile={selectedFile}
+                onFileSelect={setSelectedFile}
+                onRemove={() => setSelectedFile(null)}
+                disabled={!isConnected}
+              />
+            )}
 
-                <EmojiPicker onEmojiSelect={handleEmojiSelect} />
+            <div className="flex items-end space-x-4">
+              <div className="flex-1">
+                <div className="relative">
+                  <Textarea
+                    value={messageText}
+                    onChange={(e) => handleTyping(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    onBlur={handleStopTyping}
+                    className="w-full resize-none border border-gray-300 rounded-2xl px-4 py-3 pr-12 focus:ring-2 focus:ring-chat-primary focus:border-transparent transition-all max-h-32"
+                    placeholder={selectedFile ? "Add a message (optional)..." : "Type your message..."}
+                    rows={1}
+                    disabled={!isConnected}
+                  />
+
+                  <EmojiPicker onEmojiSelect={handleEmojiSelect} />
+                </div>
+
+                <div className="flex justify-between items-center mt-2 px-2">
+                  <div className="text-xs text-gray-400">
+                    <span className={charCount > 500 ? 'text-red-500' : ''}>{charCount}</span>/500
+                  </div>
+                  <div className="text-xs text-gray-400">
+                    Press Enter to send, Shift+Enter for new line
+                  </div>
+                </div>
               </div>
 
-              <div className="flex justify-between items-center mt-2 px-2">
-                <div className="text-xs text-gray-400">
-                  <span className={charCount > 500 ? 'text-red-500' : ''}>{charCount}</span>/500
-                </div>
-                <div className="text-xs text-gray-400">
-                  Press Enter to send, Shift+Enter for new line
-                </div>
+              <div className="flex items-center space-x-2">
+                {/* File attachment button */}
+                {!selectedFile && (
+                  <FileAttachment
+                    selectedFile={null}
+                    onFileSelect={setSelectedFile}
+                    onRemove={() => setSelectedFile(null)}
+                    disabled={!isConnected}
+                  />
+                )}
+
+                <Button
+                  type="submit"
+                  disabled={isDisabled}
+                  className="bg-chat-primary text-white p-3 rounded-2xl hover:bg-emerald-600 focus:ring-2 focus:ring-chat-primary focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Send size={16} />
+                </Button>
               </div>
             </div>
-
-            <Button
-              type="submit"
-              disabled={isDisabled}
-              className="bg-chat-primary text-white p-3 rounded-2xl hover:bg-emerald-600 focus:ring-2 focus:ring-chat-primary focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Send size={16} />
-            </Button>
           </form>
         </div>
       </main>
