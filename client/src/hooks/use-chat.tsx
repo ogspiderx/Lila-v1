@@ -229,7 +229,7 @@ export function useChat() {
     }
   }, [pollMessages]);
 
-  const markMessagesAsSeen = useCallback(async (messageIds: string[]) => {
+  const markMessagesAsSeen = useCallback(async (messageIds: string[]): Promise<void> => {
     try {
       const token = getStoredToken();
       if (!token || messageIds.length === 0) return;
@@ -259,12 +259,8 @@ export function useChat() {
 
       if (response.ok) {
         console.log('Messages marked as seen on server:', messageIds.length);
-        // Force a re-render by updating state again with server confirmation
-        setTimeout(() => {
-          setMessages(prev => prev.map(msg => 
-            messageIds.includes(msg.id) ? { ...msg, seenAt: currentTime } : msg
-          ));
-        }, 50);
+        // Immediately poll for fresh data to ensure UI is updated
+        setTimeout(() => pollMessages(), 100);
       } else {
         console.error('Failed to mark messages as seen');
         // Revert optimistic update on failure
