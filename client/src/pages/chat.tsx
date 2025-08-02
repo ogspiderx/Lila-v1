@@ -104,7 +104,7 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
 
     if (!isTyping && value.length > 0 && otherUserId && isAuthenticated) {
       setIsTyping(true);
-      sendTyping();
+      sendTyping(otherUserId, true);
     }
 
     // Clear previous timeout
@@ -119,8 +119,9 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
   };
 
   const handleStopTyping = () => {
-    if (isTyping) {
+    if (isTyping && otherUserId) {
       setIsTyping(false);
+      sendTyping(otherUserId, false);
     }
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);

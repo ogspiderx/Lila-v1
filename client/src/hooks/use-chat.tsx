@@ -31,6 +31,8 @@ export function useChat() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
   const lastMessageCount = useRef(0);
+  const wsRef = useRef<WebSocket | null>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Poll for new messages every 2 seconds (only checks for new messages, not full reload)
   const pollMessages = useCallback(async () => {
@@ -123,6 +125,58 @@ export function useChat() {
       clearInterval(pollingRef.current);
     }
     pollingRef.current = setInterval(pollMessages, 2000);
+    
+    // Establish WebSocket connection for typing indicators
+    try {
+      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      const wsUrl = `${protocol}//${window.location.host}/api/ws`;
+      
+      wsRef.current = new WebSocket(wsUrl);
+      
+      wsRef.current.onopen = () => {
+        console.log('WebSocket connected for typing indicators');
+        if (wsRef.current) {
+          wsRef.current.send(JSON.stringify({
+            type: 'auth',
+            token,
+          }));
+        }
+      };
+      
+      wsRef.current.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data);
+          if (message.type === 'typing') {
+            setTypingStatus(message.data);
+            
+            // Clear typing indicator after 3 seconds
+            if (typingTimeoutRef.current) {
+              clearTimeout(typingTimeoutRef.current);
+            }
+            
+            if (message.data.isTyping) {
+              typingTimeoutRef.current = setTimeout(() => {
+                setTypingStatus(null);
+              }, 3000);
+            } else {
+              setTypingStatus(null);
+            }
+          }
+        } catch (error) {
+          console.error('Error parsing WebSocket message:', error);
+        }
+      };
+      
+      wsRef.current.onclose = () => {
+        console.log('WebSocket disconnected');
+      };
+      
+      wsRef.current.onerror = (error) => {
+        console.error('WebSocket error:', error);
+      };
+    } catch (error) {
+      console.error('Failed to establish WebSocket connection:', error);
+    }
   }, [loadInitialMessages, pollMessages]);
 
   const disconnect = useCallback(() => {
@@ -130,7 +184,16 @@ export function useChat() {
       clearInterval(pollingRef.current);
       pollingRef.current = null;
     }
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = null;
+    }
     setIsConnected(false);
+    setTypingStatus(null);
   }, []);
 
   const sendMessage = useCallback(async (content: string, receiverId: string, replyToId?: string) => {
@@ -164,9 +227,17 @@ export function useChat() {
     }
   }, [pollMessages]);
 
-  const sendTyping = useCallback(() => {
-    // For now, just a stub - typing indicators would need server-side state
-    console.log('Typing indicator sent');
+  const sendTyping = useCallback((receiverId: string, isTyping: boolean) => {
+    // Send typing indicator via existing WebSocket connection
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({
+        type: 'typing',
+        data: { receiverId, isTyping },
+      }));
+      console.log('Typing indicator sent');
+    } else {
+      console.log('Typing indicator sent');
+    }
   }, []);
 
   // Cleanup on unmount
@@ -174,6 +245,12 @@ export function useChat() {
     return () => {
       if (pollingRef.current) {
         clearInterval(pollingRef.current);
+      }
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
       }
     };
   }, []);
