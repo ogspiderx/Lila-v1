@@ -36,6 +36,7 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
     disconnect,
     sendMessage,
     editMessage,
+    deleteMessage,
     sendTyping,
     markMessagesAsSeen,
     loadMoreMessages,
@@ -312,6 +313,7 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
               message={message} 
               onReply={setReplyingTo}
               onEdit={editMessage}
+              onDelete={deleteMessage}
             />
           ))}
 

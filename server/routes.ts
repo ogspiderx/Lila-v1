@@ -323,6 +323,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // DELETE route for deleting messages
+  app.delete("/api/messages/:id", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith("Bearer ")) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const token = authHeader.substring(7);
+      const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+      
+      const messageId = req.params.id;
+      
+      const deleted = await storage.deleteMessage(messageId, decoded.userId);
+      
+      if (!deleted) {
+        return res.status(404).json({ message: "Message not found or not authorized" });
+      }
+
+      res.json({ success: true, messageId });
+    } catch (error) {
+      console.error('Error deleting message:', error);
+      res.status(500).json({ message: "Failed to delete message" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   // WebSocket server setup
@@ -463,6 +489,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ws.send(JSON.stringify({
               type: 'edit_error',
               message: 'Failed to edit message or not authorized',
+            }));
+          }
+        } else if (message.type === 'delete_message' && userId) {
+          // Handle message deletion
+          const { messageId } = message.data;
+          
+          // Get the message before deleting to know the receiver
+          const messageToDelete = await storage.getMessageById(messageId);
+          
+          const deleted = await storage.deleteMessage(messageId, userId);
+          
+          if (deleted && messageToDelete) {
+            // Send to receiver if connected
+            const receiverWs = connections.get(messageToDelete.receiverId);
+            if (receiverWs && receiverWs.readyState === WebSocket.OPEN) {
+              receiverWs.send(JSON.stringify({
+                type: 'message_deleted',
+                data: { messageId },
+              }));
+            }
+
+            // Send back to sender as confirmation
+            ws.send(JSON.stringify({
+              type: 'message_deleted',
+              data: { messageId },
+            }));
+          } else {
+            ws.send(JSON.stringify({
+              type: 'delete_error',
+              message: 'Failed to delete message or not authorized',
             }));
           }
         } else if (message.type === 'typing' && userId) {

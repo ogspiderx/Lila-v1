@@ -1,6 +1,6 @@
 import { Message } from "@/hooks/use-chat";
 import { getStoredUser } from "@/lib/auth";
-import { Reply, Check, CheckCheck, Edit3, X, Check as CheckIcon } from "lucide-react";
+import { Reply, Check, CheckCheck, Edit3, X, Check as CheckIcon, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
@@ -9,9 +9,10 @@ interface MessageBubbleProps {
   message: Message;
   onReply?: (message: Message) => void;
   onEdit?: (messageId: string, content: string) => Promise<boolean>;
+  onDelete?: (messageId: string) => Promise<boolean>;
 }
 
-export function MessageBubble({ message, onReply, onEdit }: MessageBubbleProps) {
+export function MessageBubble({ message, onReply, onEdit, onDelete }: MessageBubbleProps) {
   const currentUser = getStoredUser();
   const isSent = message.senderId === currentUser?.id;
   const [isEditing, setIsEditing] = useState(false);
@@ -50,6 +51,15 @@ export function MessageBubble({ message, onReply, onEdit }: MessageBubbleProps) 
       handleEditSubmit();
     } else if (e.key === 'Escape') {
       handleEditCancel();
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!onDelete) return;
+    
+    const confirmed = window.confirm('Are you sure you want to delete this message?');
+    if (confirmed) {
+      await onDelete(message.id);
     }
   };
 
@@ -135,6 +145,16 @@ export function MessageBubble({ message, onReply, onEdit }: MessageBubbleProps) 
                     onClick={() => setIsEditing(true)}
                   >
                     <Edit3 className="h-3 w-3" />
+                  </Button>
+                )}
+                {isSent && onDelete && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="p-1 h-6 w-6 bg-white dark:bg-gray-800 border shadow-sm hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600"
+                    onClick={handleDelete}
+                  >
+                    <Trash2 className="h-3 w-3" />
                   </Button>
                 )}
               </div>

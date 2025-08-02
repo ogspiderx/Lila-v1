@@ -189,6 +189,13 @@ export function useChat() {
             });
             // Force re-render
             setForceUpdate(prev => prev + 1);
+          } else if (message.type === 'message_deleted') {
+            // Handle real-time message delete updates
+            const { messageId } = message.data;
+            console.log('Received WebSocket delete update:', messageId);
+            setMessages(prev => prev.filter(msg => msg.id !== messageId));
+            // Force re-render
+            setForceUpdate(prev => prev + 1);
           }
         } catch (error) {
           console.error('Error parsing WebSocket message:', error);
@@ -339,6 +346,46 @@ export function useChat() {
     }
   }, [pollMessages]);
 
+  const deleteMessage = useCallback(async (messageId: string): Promise<boolean> => {
+    try {
+      const token = getStoredToken();
+      if (!token) return false;
+      
+      const response = await fetch(`/api/messages/${messageId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        console.log('Message deleted successfully:', messageId);
+        
+        // Remove the message from the local state immediately
+        setMessages(prev => prev.filter(msg => msg.id !== messageId));
+        
+        // Send via WebSocket for real-time updates to other users
+        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+          wsRef.current.send(JSON.stringify({
+            type: 'delete_message',
+            data: { messageId },
+          }));
+        }
+        
+        // Force re-render
+        setForceUpdate(prev => prev + 1);
+        
+        return true;
+      } else {
+        console.error('Failed to delete message');
+        return false;
+      }
+    } catch (error) {
+      console.error('Error deleting message:', error);
+      return false;
+    }
+  }, []);
+
   const sendTyping = useCallback((receiverId: string, isTyping: boolean) => {
     // Send typing indicator via existing WebSocket connection
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
@@ -379,6 +426,7 @@ export function useChat() {
     disconnect,
     sendMessage,
     editMessage,
+    deleteMessage,
     sendTyping,
     markMessagesAsSeen,
     loadMoreMessages,

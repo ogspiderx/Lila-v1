@@ -7,6 +7,7 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   createMessage(message: InsertMessage & { senderId: string }): Promise<Message>;
   editMessage(messageId: string, content: string, userId: string): Promise<Message | null>;
+  deleteMessage(messageId: string, userId: string): Promise<boolean>;
   getMessageById(id: string): Promise<Message | undefined>;
   getMessagesBetweenUsers(user1Id: string, user2Id: string): Promise<Message[]>;
   getMessagesBetweenUsersPaginated(user1Id: string, user2Id: string, limit: number, offset: number): Promise<{ messages: Message[], hasMore: boolean }>;
@@ -156,6 +157,24 @@ export class MemStorage implements IStorage {
     for (const messageId of messageIds) {
       await this.markMessageAsSeen(messageId, userId);
     }
+  }
+
+  async deleteMessage(messageId: string, userId: string): Promise<boolean> {
+    const message = this.messages.get(messageId);
+    if (!message) {
+      console.log('Message not found:', messageId);
+      return false;
+    }
+
+    // Only allow the sender to delete their own message
+    if (message.senderId !== userId) {
+      console.log('User not authorized to delete message:', messageId, 'user:', userId);
+      return false;
+    }
+
+    this.messages.delete(messageId);
+    console.log('Deleted message:', messageId);
+    return true;
   }
 }
 
