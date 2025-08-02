@@ -239,10 +239,11 @@ export function useChat() {
       // Optimistically update the messages locally first
       const currentTime = new Date().toISOString();
       setMessages(prev => {
-        const updated = prev.map(msg => 
+        const updated = [...prev].map(msg => 
           messageIds.includes(msg.id) ? { ...msg, seenAt: currentTime } : msg
         );
         console.log('Optimistically updated messages:', updated.filter(m => messageIds.includes(m.id)));
+        console.log('State update forced with new array reference');
         return updated;
       });
       
@@ -259,8 +260,7 @@ export function useChat() {
 
       if (response.ok) {
         console.log('Messages marked as seen on server:', messageIds.length);
-        // Immediately poll for fresh data to ensure UI is updated
-        setTimeout(() => pollMessages(), 100);
+        // The optimistic update should be enough, no need to poll again
       } else {
         console.error('Failed to mark messages as seen');
         // Revert optimistic update on failure

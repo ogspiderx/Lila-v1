@@ -100,10 +100,7 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
         
         if (unseenReceivedMessages.length > 0) {
           const messageIds = unseenReceivedMessages.map(msg => msg.id);
-          markMessagesAsSeen(messageIds).then(() => {
-            // Force a small state update to trigger re-render
-            setMessageText(prev => prev);
-          });
+          markMessagesAsSeen(messageIds);
         }
       }
     };
