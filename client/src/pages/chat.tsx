@@ -133,7 +133,13 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
   }, [messages, currentUser, markMessagesAsSeen]);
 
   useEffect(() => {
-    scrollToBottom();
+    // Only force scroll to bottom when typing status changes (someone starts/stops typing)
+    // For regular message updates, let scrollToBottom decide based on user's current position
+    if (typingStatus) {
+      scrollToBottom(); // Auto-scroll only if near bottom
+    } else {
+      scrollToBottom(); // Auto-scroll only if near bottom
+    }
     console.log('CHAT PAGE: Messages or typing changed, current messages:', messages.length);
   }, [messages, typingStatus, forceUpdate]);
 
@@ -145,9 +151,15 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
 
   
 
-  const scrollToBottom = () => {
+  const scrollToBottom = (force = false) => {
     if (messagesContainerRef.current) {
-      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+      const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+      const isNearBottom = scrollTop + clientHeight >= scrollHeight - 100; // Within 100px of bottom
+      
+      // Only auto-scroll if user is near bottom or if forced (like when sending a message)
+      if (force || isNearBottom) {
+        messagesContainerRef.current.scrollTop = scrollHeight;
+      }
     }
   };
 
@@ -185,6 +197,8 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
     setUploadedFileData(null);
     setUploadProgress(0);
     handleStopTyping();
+    // Force scroll to bottom when user sends a message
+    setTimeout(() => scrollToBottom(true), 100);
   };
 
   const handleTyping = (value: string) => {
