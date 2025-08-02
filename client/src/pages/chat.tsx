@@ -94,10 +94,10 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
 
   // Mark received messages as seen when they appear
   useEffect(() => {
-    if (messages.length > 0 && currentUser && otherUserId) {
+    if (messages.length > 0 && currentUser) {
       const unseenReceivedMessages = messages.filter(msg => 
         msg.receiverId === currentUser.id && 
-        msg.senderId === otherUserId && 
+        msg.senderId !== currentUser.id && 
         !msg.seenAt
       );
       
@@ -106,7 +106,7 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
         markMessagesAsSeen(messageIds);
       }
     }
-  }, [messages, currentUser, otherUserId, markMessagesAsSeen]);
+  }, [messages, currentUser, markMessagesAsSeen]);
 
   const scrollToBottom = () => {
     if (messagesContainerRef.current) {
