@@ -3,6 +3,7 @@ import { getStoredUser } from "@/lib/auth";
 import { Reply, Check, CheckCheck, Edit3, X, Check as CheckIcon, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useState } from "react";
 
 interface MessageBubbleProps {
@@ -18,6 +19,7 @@ export function MessageBubble({ message, onReply, onEdit, onDelete }: MessageBub
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   
   const timestamp = new Date(message.timestamp).toLocaleTimeString([], {
     hour: '2-digit',
@@ -54,13 +56,23 @@ export function MessageBubble({ message, onReply, onEdit, onDelete }: MessageBub
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = async (e: React.MouseEvent) => {
     if (!onDelete) return;
     
-    const confirmed = window.confirm('Are you sure you want to delete this message?');
-    if (confirmed) {
+    // If shift key is held, bypass confirmation
+    if (e.shiftKey) {
       await onDelete(message.id);
+      return;
     }
+    
+    // Otherwise show confirmation dialog
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!onDelete) return;
+    setShowDeleteDialog(false);
+    await onDelete(message.id);
   };
 
   return (
@@ -153,6 +165,7 @@ export function MessageBubble({ message, onReply, onEdit, onDelete }: MessageBub
                     size="sm"
                     className="p-1 h-6 w-6 bg-white dark:bg-gray-800 border shadow-sm hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600"
                     onClick={handleDelete}
+                    title="Delete message (hold Shift to skip confirmation)"
                   >
                     <Trash2 className="h-3 w-3" />
                   </Button>
@@ -183,6 +196,17 @@ export function MessageBubble({ message, onReply, onEdit, onDelete }: MessageBub
           {initials}
         </div>
       )}
+
+      <ConfirmDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        title="Delete Message"
+        description="Are you sure you want to delete this message? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={confirmDelete}
+        variant="destructive"
+      />
     </div>
   );
 }
