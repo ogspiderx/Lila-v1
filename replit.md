@@ -42,10 +42,10 @@ This is a modern, full-stack real-time chat application that demonstrates the po
 
 ## Recent Changes
 
-**File Attachment Feature (August 2, 2025):**
+**Media Features Implementation (August 3, 2025):**
 - Added comprehensive file upload functionality to the chat application
-- Backend: Created multer-based file upload API with 10MB file size limit and JWT authentication
-- Supported file types: images, PDFs, documents, text files, spreadsheets
+- Backend: Created multer-based file upload API with 300MB file size limit and JWT authentication
+- Supported file types: images, PDFs, documents, text files, spreadsheets, audio, video, archives, code files
 - Frontend: Created FileAttachment component with drag-and-drop interface
 - File preview and download capabilities for all attachment types
 - Integrated file attachments into message system with attachment metadata storage
@@ -53,10 +53,32 @@ This is a modern, full-stack real-time chat application that demonstrates the po
 - Fixed authentication token key mismatch between auth system ('chat_token') and file upload component
 - File upload button appears next to send button, with file preview when selected
 - Supports sending files with optional message text
-- Expanded file type support: images, documents, PDFs, archives, audio, video, code files, and more
-- Increased file size limit from 10MB to 300MB for larger file sharing
 - Increased chat character limit from 500 to 5000 characters for longer messages
 - Enhanced file type detection with appropriate icons (music, video, archive, code, etc.)
+
+**Voice Messaging Feature (August 3, 2025):**
+- Added voice message recording and playback functionality
+- Voice recorder component with real-time audio visualization
+- WebRTC MediaRecorder API for high-quality audio capture
+- Voice message upload endpoint with duration tracking
+- Voice message player with play/pause controls and duration display
+- Fixed storage layer to properly save voice message URL and duration
+- Voice messages display as audio players in chat bubbles
+
+**GIF Integration (August 3, 2025):**
+- Added GIF picker component with search functionality
+- Integrated with Tenor API (Google's GIF platform) for high-quality GIFs
+- Purple GIF button for easy access to trending and searchable GIFs
+- GIFs are sent as image attachments and display properly in chat
+- Search functionality with trending GIFs as default
+
+**Sticker Feature (August 3, 2025):**
+- Added sticker picker with categorized emoji-style stickers
+- Three categories: Faces, Animals, and Gestures
+- High-quality Twitter Twemoji stickers from CDN
+- Yellow sticker button with organized tab interface
+- Search functionality within sticker categories
+- Stickers sent as PNG image attachments
 
 **Voice Messages and GIF Features (August 3, 2025):**
 - Fixed critical voice messaging bugs including authentication token issues and database storage problems
