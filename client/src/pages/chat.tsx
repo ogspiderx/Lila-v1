@@ -113,7 +113,7 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
           msg.senderId !== currentUser.id && 
           !msg.seenAt
         );
-        
+
         if (unseenReceivedMessages.length > 0) {
           const messageIds = unseenReceivedMessages.map(msg => msg.id);
           markMessagesAsSeen(messageIds);
@@ -155,7 +155,7 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
       if (messagesContainerRef.current) {
         const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
         const isNearBottom = scrollTop + clientHeight >= scrollHeight - 100;
-        
+
         // Only auto-scroll if user is near bottom
         if (isNearBottom) {
           scrollToBottom(true);
@@ -164,11 +164,31 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
     }
   }, [messages.length]); // Only trigger when message count changes, not on every update
 
-  // Debug effect to log message seen status changes
   useEffect(() => {
-    const seenMessages = messages.filter(msg => msg.seenAt);
-    console.log('CHAT PAGE: Seen messages count:', seenMessages.length);
-  }, [messages, forceUpdate]);
+    // Only log when message count actually changes
+    const currentMessageCount = messages.length;
+    const seenMessageCount = messages.filter(msg => msg.seenAt).length;
+
+    // Store previous counts to avoid unnecessary logging
+    const prevMessageCount = messagesContainerRef.current?.dataset.messageCount;
+    const prevSeenCount = messagesContainerRef.current?.dataset.seenCount;
+
+    if (prevMessageCount !== currentMessageCount.toString()) {
+      console.log('GUI REFRESHED: Messages updated from server', currentMessageCount);
+      if (messagesContainerRef.current) {
+        messagesContainerRef.current.dataset.messageCount = currentMessageCount.toString();
+      }
+    }
+
+    if (prevSeenCount !== seenMessageCount.toString()) {
+      console.log('CHAT PAGE: Seen messages count:', seenMessageCount);
+      if (messagesContainerRef.current) {
+        messagesContainerRef.current.dataset.seenCount = seenMessageCount.toString();
+      }
+    }
+
+    setForceUpdate(prev => prev + 1);
+  }, [messages]);
 
   // Global keyboard listener for "/" key to focus chat input
   useEffect(() => {
@@ -184,13 +204,13 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  
+
 
   const scrollToBottom = (force = false) => {
     if (messagesContainerRef.current) {
       const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
       const isNearBottom = scrollTop + clientHeight >= scrollHeight - 100; // Within 100px of bottom
-      
+
       // Only auto-scroll if user is near bottom or if forced (like when sending a message)
       if (force || isNearBottom) {
         messagesContainerRef.current.scrollTop = scrollHeight;
@@ -212,17 +232,17 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
 
     const messageContent = content || (selectedFile ? "📎 File attachment" : "");
     let fileAttachment = uploadedFileData;
-    
+
     // If there's a selected file but no uploaded data, upload it first
     if (selectedFile && !uploadedFileData) {
       try {
         setIsUploading(true);
         setUploadProgress(0);
-        
+
         fileAttachment = await uploadFile(selectedFile, (progress) => {
           setUploadProgress(progress);
         });
-        
+
         setUploadedFileData(fileAttachment);
       } catch (error) {
         console.error('Upload error:', error);
@@ -231,7 +251,7 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
       }
       setIsUploading(false);
     }
-    
+
     sendMessage({
       content: messageContent,
       receiverId: otherUserId,
@@ -258,7 +278,7 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
       if (!isTyping) {
         setIsTyping(true);
         sendTyping(otherUserId, true);
-        
+
         // Start sending periodic typing updates every 2 seconds
         typingIntervalRef.current = setInterval(() => {
           if (otherUserId) {
@@ -582,7 +602,7 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
               </div>
             </div>
           )}
-          
+
           <form onSubmit={handleSendMessage} className="flex flex-col space-y-4">
             {/* File attachment preview */}
             {selectedFile && (

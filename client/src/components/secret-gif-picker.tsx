@@ -32,7 +32,17 @@ export function SecretGifPicker({ isOpen, onClose, onGifSelect }: SecretGifPicke
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch('/api/secret-gifs');
+      const token = localStorage.getItem('chat_token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+      
+      const response = await fetch('/api/secret-gifs', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
       if (!response.ok) {
         throw new Error('Failed to load secret GIFs');
       }
