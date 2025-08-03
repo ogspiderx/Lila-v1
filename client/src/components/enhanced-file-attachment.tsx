@@ -323,11 +323,11 @@ export function FileDisplay({ attachment }: FileDisplayProps) {
   if (isImage) {
     return (
       <>
-        <div className="w-fit">
+        <div className="inline-block">
           <LazyImage
             src={attachment.url}
             alt={attachment.name}
-            className="rounded-lg max-h-60 max-w-full w-auto cursor-pointer hover:opacity-90 transition-opacity"
+            className="rounded-lg max-h-60 w-auto cursor-pointer hover:opacity-90 transition-opacity block"
             onClick={() => setIsViewerOpen(true)}
             showSkeleton={false}
             aspectRatio="auto"
@@ -357,7 +357,7 @@ export function FileDisplay({ attachment }: FileDisplayProps) {
   }
 
   return (
-    <div className="w-fit max-w-xs">
+    <div className="inline-block min-w-48 max-w-xs">
       <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg border hover:bg-gray-100 transition-colors cursor-pointer" onClick={handleDownload}>
         {getFileIcon(attachment.type, attachment.name)}
         <div className="flex-1 min-w-0">
