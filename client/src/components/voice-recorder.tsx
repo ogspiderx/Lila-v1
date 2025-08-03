@@ -22,6 +22,7 @@ export function VoiceRecorder({ onVoiceRecorded, onCancel, className }: VoiceRec
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const recordingTimeRef = useRef<number>(0);
 
   useEffect(() => {
     return () => {
@@ -73,19 +74,34 @@ export function VoiceRecorder({ onVoiceRecorded, onCancel, className }: VoiceRec
       });
       setRecordedBlob(blob);
       
-      // Create audio element to get duration
+      // Use the actual recording time as duration since audio metadata might not be reliable
+      const finalRecordingTime = recordingTimeRef.current;
+      setDuration(Math.round(finalRecordingTime));
+      
+      // Also try to get duration from audio metadata as a fallback
       const audio = new Audio(URL.createObjectURL(blob));
       audio.addEventListener('loadedmetadata', () => {
-        setDuration(Math.round(audio.duration));
+        if (audio.duration && !isNaN(audio.duration) && isFinite(audio.duration)) {
+          setDuration(Math.round(audio.duration));
+        }
+      });
+      audio.addEventListener('error', () => {
+        // If audio fails to load metadata, stick with recording time
+        console.log('Audio metadata loading failed, using recording time as duration');
       });
     };
 
     mediaRecorder.start(100);
     setIsRecording(true);
     setRecordingTime(0);
+    recordingTimeRef.current = 0;
 
     intervalRef.current = setInterval(() => {
-      setRecordingTime(prev => prev + 0.1);
+      setRecordingTime(prev => {
+        const newTime = prev + 0.1;
+        recordingTimeRef.current = newTime;
+        return newTime;
+      });
     }, 100);
   };
 
@@ -133,6 +149,7 @@ export function VoiceRecorder({ onVoiceRecorded, onCancel, className }: VoiceRec
     setRecordedBlob(null);
     setDuration(0);
     setRecordingTime(0);
+    recordingTimeRef.current = 0;
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current = null;
@@ -141,8 +158,10 @@ export function VoiceRecorder({ onVoiceRecorded, onCancel, className }: VoiceRec
   };
 
   const sendRecording = () => {
-    if (recordedBlob && duration > 0) {
-      onVoiceRecorded(recordedBlob, duration);
+    if (recordedBlob) {
+      // Use the recording time if duration is invalid
+      const finalDuration = duration > 0 && isFinite(duration) ? duration : Math.round(recordingTime);
+      onVoiceRecorded(recordedBlob, finalDuration);
       deleteRecording();
     }
   };
