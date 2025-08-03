@@ -41,9 +41,9 @@ export function EnhancedFileAttachment({ onFileSelect, onRemove, selectedFile, d
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    
+
     handleFileValidationAndSelect(file);
-    
+
     // Clear the input so the same file can be selected again
     if (event.target) {
       event.target.value = '';
@@ -110,7 +110,7 @@ export function EnhancedFileAttachment({ onFileSelect, onRemove, selectedFile, d
   const getFileIcon = (type: string, fileName?: string) => {
     // Get file extension for better detection
     const extension = fileName ? fileName.split('.').pop()?.toLowerCase() : '';
-    
+
     if (type.startsWith('image/')) {
       return <Image size={16} className="text-blue-500" />;
     } else if (type.startsWith('audio/') || ['mp3', 'wav', 'flac', 'aac', 'ogg', 'm4a'].includes(extension || '')) {
@@ -243,7 +243,7 @@ export async function uploadFile(file: File, onProgress?: (progress: number) => 
       if (xhr.status === 200) {
         try {
           const result = JSON.parse(xhr.responseText);
-          
+
           // Calculate size in appropriate units
           const sizeInBytes = file.size;
           let sizeString;
@@ -295,7 +295,7 @@ export function FileDisplay({ attachment }: FileDisplayProps) {
   const getFileIcon = (type: string, fileName?: string) => {
     // Get file extension for better detection
     const extension = fileName ? fileName.split('.').pop()?.toLowerCase() : '';
-    
+
     if (type.startsWith('image/')) {
       return <Image size={20} className="text-blue-500" />;
     } else if (type.startsWith('audio/') || ['mp3', 'wav', 'flac', 'aac', 'ogg', 'm4a'].includes(extension || '')) {
@@ -345,7 +345,7 @@ export function FileDisplay({ attachment }: FileDisplayProps) {
             </Button>
           </div>
         </div>
-        
+
         <ImageViewer
           isOpen={isViewerOpen}
           onClose={() => setIsViewerOpen(false)}
