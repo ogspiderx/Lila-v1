@@ -29,6 +29,7 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const typingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const currentUser = getStoredUser();
   const token = getStoredToken();
@@ -166,6 +167,20 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
     const seenMessages = messages.filter(msg => msg.seenAt);
     console.log('CHAT PAGE: Seen messages count:', seenMessages.length);
   }, [messages, forceUpdate]);
+
+  // Global keyboard listener for "/" key to focus chat input
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only trigger if "/" is pressed and we're not already in an input/textarea
+      if (e.key === "/" && !['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) {
+        e.preventDefault();
+        textareaRef.current?.focus();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   
 
@@ -565,6 +580,7 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
               <div className="flex-1">
                 <div className="relative">
                   <Textarea
+                    ref={textareaRef}
                     value={messageText}
                     onChange={(e) => handleTyping(e.target.value)}
                     onKeyDown={handleKeyDown}
