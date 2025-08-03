@@ -47,6 +47,11 @@ export function GifPicker({ onGifSelect, trigger }: GifPickerProps) {
   // In production, you'd want to use environment variables
   const TENOR_API_KEY = "AIzaSyAyimkuYQYF_FXVALexPuGQctUWRURdCYQ"; // Google's free public API key for demo
 
+  // Cache duration (e.g., 5 minutes)
+  const CACHE_DURATION = 5 * 60 * 1000;
+  const gifCache = new Map<string, TenorGifData[]>();
+  const cacheTimestamps = new Map<string, number>();
+
   const searchGifs = async (query: string) => {
     if (!query.trim()) {
       setGifs([]);
@@ -54,17 +59,35 @@ export function GifPicker({ onGifSelect, trigger }: GifPickerProps) {
       return;
     }
 
+    const cacheKey = `search:${query.toLowerCase()}`;
+    const now = Date.now();
+
+    // Check cache first
+    if (gifCache.has(cacheKey) && cacheTimestamps.has(cacheKey)) {
+      const cacheTime = cacheTimestamps.get(cacheKey)!;
+      if (now - cacheTime < CACHE_DURATION) {
+        setGifs(gifCache.get(cacheKey)!);
+        setHasSearched(true);
+        return;
+      }
+    }
+
     setIsLoading(true);
     setHasSearched(true);
-
     try {
       const response = await fetch(
         `https://tenor.googleapis.com/v2/search?key=${TENOR_API_KEY}&q=${encodeURIComponent(query)}&limit=20&media_filter=gif&contentfilter=high`
       );
-      
+
       if (response.ok) {
         const data = await response.json();
-        setGifs(data.results || []);
+        const results = data.results || [];
+
+        // Cache the results
+        gifCache.set(cacheKey, results);
+        cacheTimestamps.set(cacheKey, now);
+
+        setGifs(results);
       } else {
         console.error('Failed to fetch GIFs from Tenor');
         setGifs([]);
@@ -83,7 +106,7 @@ export function GifPicker({ onGifSelect, trigger }: GifPickerProps) {
       const response = await fetch(
         `https://tenor.googleapis.com/v2/featured?key=${TENOR_API_KEY}&limit=20&media_filter=gif&contentfilter=high`
       );
-      
+
       if (response.ok) {
         const data = await response.json();
         setGifs(data.results || []);
@@ -129,7 +152,7 @@ export function GifPicker({ onGifSelect, trigger }: GifPickerProps) {
         <DialogHeader>
           <DialogTitle>Choose a GIF</DialogTitle>
         </DialogHeader>
-        
+
         <form onSubmit={handleSearch} className="flex gap-2">
           <Input
             placeholder="Search for GIFs..."

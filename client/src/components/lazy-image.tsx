@@ -37,6 +37,12 @@ export function LazyImage({
     setHasError(false);
     setIsLoaded(false);
     setIsLoading(false);
+    
+    // Preload image if it's likely to be viewed soon
+    if (src) {
+      const img = new Image();
+      img.src = src;
+    }
   }, [src]);
 
   useEffect(() => {
@@ -55,8 +61,8 @@ export function LazyImage({
         });
       },
       {
-        threshold: 0.1,
-        rootMargin: '100px', // Increased margin for better preloading
+        threshold: 0.01, // Lower threshold for earlier loading
+        rootMargin: '300px', // Much larger margin for aggressive preloading
       }
     );
 

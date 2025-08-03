@@ -321,14 +321,21 @@ export function FileDisplay({ attachment }: FileDisplayProps) {
   };
 
   if (isImage) {
+    // For GIFs, use a more optimized approach
+    const isGif = attachment.type === 'image/gif';
+    
     return (
       <>
         <div className="mt-2 max-w-sm">
           <LazyImage
             src={attachment.url}
             alt={attachment.name}
-            className="rounded-lg border max-h-48 w-auto cursor-pointer hover:opacity-90 transition-opacity"
+            className={`rounded-lg border max-h-48 w-auto cursor-pointer hover:opacity-90 transition-opacity ${
+              isGif ? 'bg-gray-100' : ''
+            }`}
             onClick={() => setIsViewerOpen(true)}
+            showSkeleton={true}
+            aspectRatio="auto"
           />
           <div className="flex items-center justify-between mt-1 text-xs text-gray-500">
             <span className="truncate flex-1">{attachment.name}</span>

@@ -230,14 +230,16 @@ export function MessageBubble({ message, onReply, onEdit, onDelete, onReaction }
 
               {/* File attachment display */}
               {message.attachmentUrl && message.attachmentName && message.attachmentType && message.attachmentSize && (
-                <FileDisplay
-                  attachment={{
-                    url: message.attachmentUrl,
-                    name: message.attachmentName,
-                    type: message.attachmentType,
-                    size: message.attachmentSize,
-                  }}
-                />
+                <div className="mt-2">
+                  <FileDisplay
+                    attachment={{
+                      url: message.attachmentUrl,
+                      name: message.attachmentName,
+                      type: message.attachmentType,
+                      size: message.attachmentSize,
+                    }}
+                  />
+                </div>
               )}
 
               {/* Action buttons */}
