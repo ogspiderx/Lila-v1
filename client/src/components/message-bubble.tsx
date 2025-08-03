@@ -132,7 +132,7 @@ export function MessageBubble({ message, onReply, onEdit, onDelete, onReaction }
       )}
 
       <div className={`flex-1 ${isSent ? 'flex flex-col items-end' : ''}`}>
-        <div className={`${isSent ? 'bg-sent-message' : 'bg-received-message'} rounded-2xl ${isSent ? 'rounded-tr-md' : 'rounded-tl-md'} ${message.attachmentUrl || message.voiceMessageUrl ? 'p-2' : 'px-4 py-3'} ${message.attachmentUrl || message.voiceMessageUrl ? 'w-fit' : 'max-w-xs'} relative`}>
+        <div className={`${isSent ? 'bg-sent-message' : 'bg-received-message'} rounded-2xl ${isSent ? 'rounded-tr-md' : 'rounded-tl-md'} ${message.attachmentUrl || message.voiceMessageUrl ? 'p-2' : 'px-4 py-3'} ${message.attachmentUrl || message.voiceMessageUrl ? 'w-fit max-w-sm' : 'max-w-xs'} relative`}>
           {/* Replied message preview */}
           {message.repliedMessage && (
             <div className="mb-2 p-2 bg-gray-100 dark:bg-gray-700 rounded-lg border-l-2 border-gray-300 dark:border-gray-500 text-sm">

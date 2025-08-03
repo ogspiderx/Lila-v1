@@ -323,11 +323,11 @@ export function FileDisplay({ attachment }: FileDisplayProps) {
   if (isImage) {
     return (
       <>
-        <div className="inline-block">
+        <div className="inline-block max-w-full">
           <LazyImage
             src={attachment.url}
             alt={attachment.name}
-            className="rounded-lg max-h-60 w-auto cursor-pointer hover:opacity-90 transition-opacity block"
+            className="rounded-lg max-h-60 max-w-full w-auto cursor-pointer hover:opacity-90 transition-opacity block"
             onClick={() => setIsViewerOpen(true)}
             showSkeleton={false}
             aspectRatio="auto"
