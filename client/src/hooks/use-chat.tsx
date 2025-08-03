@@ -138,8 +138,8 @@ export function useChat() {
 
       // Start polling for messages - reduced frequency
       pollingRef.current = setInterval(() => {
-        pollMessages();
-      }, 1000); // Poll every 5 seconds instead of 1 second
+        pollMessages().catch(console.error);
+      }, 1000); // Poll every second
 
       // Setup WebSocket connection
       const token = getStoredToken();
@@ -302,7 +302,7 @@ export function useChat() {
           // Message sent successfully, polling will pick it up
           console.log("Message sent successfully");
           // Immediately poll for updates
-          pollMessages();
+          pollMessages().catch(console.error);
           return true;
         } else {
           console.error("Failed to send message");
@@ -338,8 +338,8 @@ export function useChat() {
         if (response.ok) {
           console.log("Messages marked as seen on server:", messageIds.length);
           // Immediately poll for fresh data to update GUI
-          setTimeout(() => pollMessages(), 50);
-          setTimeout(() => pollMessages(), 200);
+          setTimeout(() => pollMessages().catch(console.error), 50);
+          setTimeout(() => pollMessages().catch(console.error), 200);
         } else {
           console.error("Failed to mark messages as seen");
         }
@@ -393,7 +393,7 @@ export function useChat() {
           setForceUpdate((prev) => prev + 1);
 
           // Also poll for updates to ensure consistency
-          setTimeout(() => pollMessages(), 50);
+          setTimeout(() => pollMessages().catch(console.error), 50);
 
           return true;
         } else {
