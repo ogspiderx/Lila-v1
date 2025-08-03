@@ -9,7 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { EmojiPicker } from "@/components/emoji-picker";
 import { EnhancedFileAttachment, uploadFile } from "@/components/enhanced-file-attachment";
 import { VoiceRecorder } from "@/components/voice-recorder";
-import { Users, LogOut, Wifi, Send, X, Mic } from "lucide-react";
+import { GifPicker } from "@/components/gif-picker";
+import { Users, LogOut, Wifi, Send, X, Mic, Image } from "lucide-react";
 
 interface ChatPageProps {
   onLogout: () => void;
@@ -284,6 +285,30 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
     setMessageText(prev => prev + emoji);
   };
 
+  const handleGifSelect = async (gifUrl: string) => {
+    if (!otherUserId || !currentUser) return;
+
+    try {
+      // Send message with GIF as attachment
+      const messageData = {
+        content: '🎬 GIF', // Simple content to indicate it's a GIF
+        receiverId: otherUserId,
+        replyToId: replyingTo?.id,
+        attachmentUrl: gifUrl,
+        attachmentName: 'animated.gif',
+        attachmentType: 'image/gif',
+        attachmentSize: 'Unknown',
+      };
+
+      const success = await sendMessage(messageData);
+      if (success) {
+        setReplyingTo(null);
+      }
+    } catch (error) {
+      console.error('Error sending GIF:', error);
+    }
+  };
+
   const handleVoiceRecorded = async (audioBlob: Blob, duration: number) => {
     if (!otherUserId || !currentUser) {
       console.error('Missing user info for voice message');
@@ -546,6 +571,23 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
                     onFileSelect={setSelectedFile}
                     onRemove={() => setSelectedFile(null)}
                     disabled={!isConnected}
+                  />
+                )}
+
+                {/* GIF picker button */}
+                {!selectedFile && !showVoiceRecorder && (
+                  <GifPicker 
+                    onGifSelect={handleGifSelect}
+                    trigger={
+                      <Button
+                        type="button"
+                        disabled={!isConnected || !isAuthenticated}
+                        className="bg-purple-500 text-white p-3 rounded-2xl hover:bg-purple-600 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Send GIF"
+                      >
+                        <Image size={16} />
+                      </Button>
+                    }
                   />
                 )}
 

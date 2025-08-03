@@ -42,6 +42,7 @@ export const insertMessageSchema = createInsertSchema(messages).pick({
   voiceMessageUrl: true,
   voiceMessageDuration: true,
 }).extend({
+  content: z.string().optional().default(''), // Allow empty content for GIFs and voice messages
   replyToId: z.string().optional(),
   attachmentUrl: z.string().optional(),
   attachmentName: z.string().optional(),
