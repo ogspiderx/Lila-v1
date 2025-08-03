@@ -1,5 +1,4 @@
-
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -25,64 +24,16 @@ export function LazyImage({
   fallbackSrc
 }: LazyImageProps) {
   const [isLoaded, setIsLoaded] = useState(false);
-  const [isInView, setIsInView] = useState(false);
   const [hasError, setHasError] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [currentSrc, setCurrentSrc] = useState(src);
   const imgRef = useRef<HTMLDivElement>(null);
-  const observerRef = useRef<IntersectionObserver | null>(null);
-
-  useEffect(() => {
-    setCurrentSrc(src);
-    setHasError(false);
-    setIsLoaded(false);
-    setIsLoading(false);
-    
-    // Preload image if it's likely to be viewed soon
-    if (src) {
-      const img = new Image();
-      img.src = src;
-    }
-  }, [src]);
-
-  useEffect(() => {
-    const currentImg = imgRef.current;
-    if (!currentImg) return;
-
-    // Create intersection observer with better options
-    observerRef.current = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            setIsInView(true);
-            setIsLoading(true);
-            observerRef.current?.unobserve(entry.target);
-          }
-        });
-      },
-      {
-        threshold: 0.01, // Lower threshold for earlier loading
-        rootMargin: '300px', // Much larger margin for aggressive preloading
-      }
-    );
-
-    observerRef.current.observe(currentImg);
-
-    return () => {
-      if (observerRef.current && currentImg) {
-        observerRef.current.unobserve(currentImg);
-      }
-    };
-  }, []);
 
   const handleLoad = () => {
     setIsLoaded(true);
-    setIsLoading(false);
     setHasError(false);
   };
 
   const handleError = () => {
-    setIsLoading(false);
     if (fallbackSrc && currentSrc !== fallbackSrc) {
       setCurrentSrc(fallbackSrc);
       setHasError(false);
@@ -110,10 +61,10 @@ export function LazyImage({
   );
 
   const imageClasses = cn(
-    "w-full h-full object-cover transition-all duration-500 ease-out",
+    "w-full h-full object-cover transition-all duration-300 ease-out",
     {
-      "opacity-0 scale-105": !isLoaded && isInView,
-      "opacity-100 scale-100": isLoaded,
+      "opacity-0": !isLoaded,
+      "opacity-100": isLoaded,
       "cursor-pointer hover:scale-105": onClick,
       "select-none": true
     }
@@ -141,24 +92,12 @@ export function LazyImage({
                   />
                 </svg>
               </div>
-              {isLoading && (
-                <span className="text-xs font-medium">Loading...</span>
-              )}
+              <span className="text-xs font-medium">Loading...</span>
             </div>
           </div>
         </Skeleton>
       )}
 
-      {/* Loading indicator for non-skeleton mode */}
-      {!showSkeleton && isLoading && !isLoaded && (
-        <div className="absolute inset-0 bg-muted/50 backdrop-blur-sm flex items-center justify-center rounded-lg">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <div className="w-4 h-4 border-2 border-current border-r-transparent rounded-full animate-spin" />
-            <span className="text-sm font-medium">Loading...</span>
-          </div>
-        </div>
-      )}
-      
       {/* Error state */}
       {hasError && (
         <div className="absolute inset-0 bg-muted/80 backdrop-blur-sm rounded-lg flex flex-col items-center justify-center border border-border">
@@ -184,8 +123,8 @@ export function LazyImage({
         </div>
       )}
 
-      {/* Actual image */}
-      {isInView && !hasError && (
+      {/* Actual image - loads immediately */}
+      {!hasError && (
         <img
           src={currentSrc}
           alt={alt}
@@ -193,7 +132,6 @@ export function LazyImage({
           onClick={onClick}
           onLoad={handleLoad}
           onError={handleError}
-          loading="lazy"
           draggable={false}
         />
       )}
