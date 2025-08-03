@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, Search, Image } from "lucide-react";
+import { LazyImage } from "@/components/lazy-image";
 
 interface GifPickerProps {
   onGifSelect: (gifUrl: string) => void;
@@ -160,11 +161,10 @@ export function GifPicker({ onGifSelect, trigger }: GifPickerProps) {
                   onClick={() => handleGifSelect(gif)}
                   className="relative aspect-square overflow-hidden rounded-lg hover:opacity-80 transition-opacity border border-gray-200 dark:border-gray-700"
                 >
-                  <img
+                  <LazyImage
                     src={gif.media_formats.tinygif?.url || gif.media_formats.gif?.url}
                     alt={gif.content_description || gif.title}
                     className="w-full h-full object-cover"
-                    loading="lazy"
                   />
                 </button>
               ))}

@@ -537,6 +537,39 @@ export function useChat() {
     };
   }, []);
 
+  // Polling for new messages
+  useEffect(() => {
+    const token = getStoredToken();
+    if (!token) return;
+
+    const pollMessages = async () => {
+      try {
+        const response = await fetch('/api/messages', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Retrieved messages:', data.length);
+          setMessages(data);
+        } else if (response.status === 401) {
+          console.log('Authentication failed, stopping polling');
+          return;
+        }
+      } catch (error) {
+        console.error('Error polling messages:', error);
+      }
+    };
+
+    // Initial fetch
+    pollMessages();
+
+    const interval = setInterval(pollMessages, 3000); // Reduced frequency to 3 seconds
+    return () => clearInterval(interval);
+  }, [token]);
+
   return {
     isConnected,
     isAuthenticated: isConnected, // Simplified - if connected, we're authenticated
