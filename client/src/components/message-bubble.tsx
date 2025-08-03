@@ -178,48 +178,51 @@ export function MessageBubble({ message, onReply, onEdit, onDelete, onReaction }
             </div>
           ) : (
             <>
-              <div className="text-gray-900 break-words">
-                {(() => {
-                  const MAX_LENGTH = 300;
-                  const isLongMessage = message.content.length > MAX_LENGTH;
-                  const shouldTruncate = isLongMessage && !isExpanded;
-                  const displayContent = shouldTruncate 
-                    ? message.content.substring(0, MAX_LENGTH) + "..."
-                    : message.content;
+              {/* Show text content only if there's actual content or no voice message */}
+              {(message.content && message.content.trim()) && (
+                <div className="text-gray-900 break-words">
+                  {(() => {
+                    const MAX_LENGTH = 300;
+                    const isLongMessage = message.content.length > MAX_LENGTH;
+                    const shouldTruncate = isLongMessage && !isExpanded;
+                    const displayContent = shouldTruncate 
+                      ? message.content.substring(0, MAX_LENGTH) + "..."
+                      : message.content;
 
-                  return (
-                    <>
-                      <p>{displayContent}</p>
-                      {isLongMessage && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="mt-1 p-0 h-auto text-blue-600 hover:text-blue-800 hover:bg-transparent"
-                          onClick={() => setIsExpanded(!isExpanded)}
-                        >
-                          <span className="text-sm font-medium">
-                            {isExpanded ? "Show less" : "Read more"}
-                          </span>
-                          {isExpanded ? (
-                            <ChevronUp className="h-3 w-3 ml-1" />
-                          ) : (
-                            <ChevronDown className="h-3 w-3 ml-1" />
-                          )}
-                        </Button>
-                      )}
-                    </>
-                  );
-                })()}
-                {message.editedAt && (
-                  <span className="text-xs text-gray-400 ml-2">(edited)</span>
-                )}
-              </div>
+                    return (
+                      <>
+                        <p>{displayContent}</p>
+                        {isLongMessage && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="mt-1 p-0 h-auto text-blue-600 hover:text-blue-800 hover:bg-transparent"
+                            onClick={() => setIsExpanded(!isExpanded)}
+                          >
+                            <span className="text-sm font-medium">
+                              {isExpanded ? "Show less" : "Read more"}
+                            </span>
+                            {isExpanded ? (
+                              <ChevronUp className="h-3 w-3 ml-1" />
+                            ) : (
+                              <ChevronDown className="h-3 w-3 ml-1" />
+                            )}
+                          </Button>
+                        )}
+                      </>
+                    );
+                  })()}
+                  {message.editedAt && (
+                    <span className="text-xs text-gray-400 ml-2">(edited)</span>
+                  )}
+                </div>
+              )}
               
               {/* Voice message display */}
-              {message.voiceMessageUrl && message.voiceMessageDuration && (
+              {message.voiceMessageUrl && (
                 <VoiceMessagePlayer 
                   voiceUrl={message.voiceMessageUrl}
-                  duration={parseInt(message.voiceMessageDuration)}
+                  duration={parseInt(message.voiceMessageDuration || '0')}
                   variant={isSent ? 'sent' : 'received'}
                   className="mt-2"
                 />

@@ -92,6 +92,8 @@ export class MemStorage implements IStorage {
       attachmentName: message.attachmentName || null,
       attachmentType: message.attachmentType || null,
       attachmentSize: message.attachmentSize || null,
+      voiceMessageUrl: message.voiceMessageUrl || null,
+      voiceMessageDuration: message.voiceMessageDuration || null,
     };
     this.messages.set(id, newMessage);
     console.log('Created message:', newMessage);
