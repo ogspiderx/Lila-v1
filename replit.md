@@ -68,15 +68,6 @@ This is a modern, full-stack real-time chat application that demonstrates the po
 - Updated message schema to support voice message fields (voiceMessageUrl, voiceMessageDuration)
 - Used Tenor API instead of Giphy for better performance and reliability
 
-**Stickers Feature (August 3, 2025):**
-- Added comprehensive sticker picker with multiple themed sticker packs
-- Created 5 sticker categories: Emotions, Animals, Food, Gestures, and more
-- Built custom SVG-based stickers for reliable display across all devices
-- Orange sticker button alongside other media buttons for easy access
-- Stickers sent as SVG attachments through existing attachment system
-- Organized stickers in tabbed interface for easy browsing
-- Each sticker pack contains hand-crafted expressive stickers for fun communication
-
 ## System Architecture
 
 ### Frontend Architecture
