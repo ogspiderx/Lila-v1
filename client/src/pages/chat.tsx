@@ -7,7 +7,10 @@ import { TypingIndicator } from "@/components/typing-indicator";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { EmojiPicker } from "@/components/emoji-picker";
-import { EnhancedFileAttachment, uploadFile } from "@/components/enhanced-file-attachment";
+import {
+  EnhancedFileAttachment,
+  uploadFile,
+} from "@/components/enhanced-file-attachment";
 import { VoiceRecorder } from "@/components/voice-recorder";
 import { GifPicker } from "@/components/gif-picker";
 import { StickerPicker } from "@/components/sticker-picker";
@@ -25,7 +28,12 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadedFileData, setUploadedFileData] = useState<{ url: string; name: string; type: string; size: string } | null>(null);
+  const [uploadedFileData, setUploadedFileData] = useState<{
+    url: string;
+    name: string;
+    type: string;
+    size: string;
+  } | null>(null);
   const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
   const [showSecretGifPicker, setShowSecretGifPicker] = useState(false);
   const [forceUpdate, setForceUpdate] = useState(0);
@@ -86,7 +94,9 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
   });
 
   // Get other user info
-  const otherUsername = otherUser?.username || (currentUser?.username === "user1" ? "user2" : "user1");
+  const otherUsername =
+    otherUser?.username ||
+    (currentUser?.username === "user1" ? "user2" : "user1");
   const otherUserId = otherUser?.id;
 
   // Remove this effect as messages are now handled by the polling hook
@@ -108,14 +118,15 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
   useEffect(() => {
     const handleTabFocus = () => {
       if (messages.length > 0 && currentUser) {
-        const unseenReceivedMessages = messages.filter(msg => 
-          msg.receiverId === currentUser.id && 
-          msg.senderId !== currentUser.id && 
-          !msg.seenAt
+        const unseenReceivedMessages = messages.filter(
+          (msg) =>
+            msg.receiverId === currentUser.id &&
+            msg.senderId !== currentUser.id &&
+            !msg.seenAt,
         );
 
         if (unseenReceivedMessages.length > 0) {
-          const messageIds = unseenReceivedMessages.map(msg => msg.id);
+          const messageIds = unseenReceivedMessages.map((msg) => msg.id);
           markMessagesAsSeen(messageIds);
         }
       }
@@ -126,16 +137,16 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
       handleTabFocus();
     }
 
-    window.addEventListener('focus', handleTabFocus);
-    document.addEventListener('visibilitychange', () => {
+    window.addEventListener("focus", handleTabFocus);
+    document.addEventListener("visibilitychange", () => {
       if (!document.hidden) {
         handleTabFocus();
       }
     });
 
     return () => {
-      window.removeEventListener('focus', handleTabFocus);
-      document.removeEventListener('visibilitychange', handleTabFocus);
+      window.removeEventListener("focus", handleTabFocus);
+      document.removeEventListener("visibilitychange", handleTabFocus);
     };
   }, [messages, currentUser, markMessagesAsSeen]);
 
@@ -151,7 +162,8 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
     if (messages.length > 0) {
       // Check if user is near bottom before auto-scrolling
       if (messagesContainerRef.current) {
-        const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+        const { scrollTop, scrollHeight, clientHeight } =
+          messagesContainerRef.current;
         const isNearBottom = scrollTop + clientHeight >= scrollHeight - 100;
 
         // Only auto-scroll if user is near bottom
@@ -165,23 +177,28 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
   useEffect(() => {
     // Only log when message count actually changes
     const currentMessageCount = messages.length;
-    const seenMessageCount = messages.filter(msg => msg.seenAt).length;
+    const seenMessageCount = messages.filter((msg) => msg.seenAt).length;
 
     // Store previous counts to avoid unnecessary logging
     const prevMessageCount = messagesContainerRef.current?.dataset.messageCount;
     const prevSeenCount = messagesContainerRef.current?.dataset.seenCount;
 
     if (prevMessageCount !== currentMessageCount.toString()) {
-      console.log('GUI REFRESHED: Messages updated from server', currentMessageCount);
+      console.log(
+        "GUI REFRESHED: Messages updated from server",
+        currentMessageCount,
+      );
       if (messagesContainerRef.current) {
-        messagesContainerRef.current.dataset.messageCount = currentMessageCount.toString();
+        messagesContainerRef.current.dataset.messageCount =
+          currentMessageCount.toString();
       }
     }
 
     if (prevSeenCount !== seenMessageCount.toString()) {
-      console.log('CHAT PAGE: Seen messages count:', seenMessageCount);
+      console.log("CHAT PAGE: Seen messages count:", seenMessageCount);
       if (messagesContainerRef.current) {
-        messagesContainerRef.current.dataset.seenCount = seenMessageCount.toString();
+        messagesContainerRef.current.dataset.seenCount =
+          seenMessageCount.toString();
       }
     }
   }, [messages.length]); // Only depend on message count, not the entire messages array
@@ -190,21 +207,23 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Only trigger if "/" is pressed and we're not already in an input/textarea
-      if (e.key === "/" && !['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) {
+      if (
+        e.key === "/" &&
+        !["INPUT", "TEXTAREA"].includes((e.target as HTMLElement)?.tagName)
+      ) {
         e.preventDefault();
         textareaRef.current?.focus();
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
   }, []);
-
-
 
   const scrollToBottom = (force = false) => {
     if (messagesContainerRef.current) {
-      const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+      const { scrollTop, scrollHeight, clientHeight } =
+        messagesContainerRef.current;
       const isNearBottom = scrollTop + clientHeight >= scrollHeight - 100; // Within 100px of bottom
 
       // Only auto-scroll if user is near bottom or if forced (like when sending a message)
@@ -217,16 +236,23 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     const content = messageText.trim();
-    if ((!content && !selectedFile) || (content && content.length > 5000) || !otherUserId || !isAuthenticated) return;
+    if (
+      (!content && !selectedFile) ||
+      (content && content.length > 5000) ||
+      !otherUserId ||
+      !isAuthenticated
+    )
+      return;
 
     // Check for secret GIF trigger
-    if (content === "ineedthatrn") {
+    if (content === "secretgifs") {
       setShowSecretGifPicker(true);
       setMessageText("");
       return;
     }
 
-    const messageContent = content || (selectedFile ? "📎 File attachment" : "");
+    const messageContent =
+      content || (selectedFile ? "📎 File attachment" : "");
     let fileAttachment = uploadedFileData;
 
     // If there's a selected file but no uploaded data, upload it first
@@ -241,7 +267,7 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
 
         setUploadedFileData(fileAttachment);
       } catch (error) {
-        console.error('Upload error:', error);
+        console.error("Upload error:", error);
         setIsUploading(false);
         return;
       }
@@ -288,7 +314,7 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
         clearTimeout(typingTimeoutRef.current);
       }
 
-      // Set new timeout to stop typing after 3 seconds of inactivity  
+      // Set new timeout to stop typing after 3 seconds of inactivity
       typingTimeoutRef.current = setTimeout(() => {
         handleStopTyping();
       }, 3000);
@@ -323,7 +349,7 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
   };
 
   const handleEmojiSelect = (emoji: string) => {
-    setMessageText(prev => prev + emoji);
+    setMessageText((prev) => prev + emoji);
   };
 
   const handleGifSelect = async (gifUrl: string) => {
@@ -332,13 +358,13 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
     try {
       // Send message with GIF as attachment
       const messageData = {
-        content: '🎬 GIF', // Simple content to indicate it's a GIF
+        content: "🎬 GIF", // Simple content to indicate it's a GIF
         receiverId: otherUserId,
         replyToId: replyingTo?.id,
         attachmentUrl: gifUrl,
-        attachmentName: 'animated.gif',
-        attachmentType: 'image/gif',
-        attachmentSize: 'Unknown',
+        attachmentName: "animated.gif",
+        attachmentType: "image/gif",
+        attachmentSize: "Unknown",
       };
 
       const success = await sendMessage(messageData);
@@ -346,7 +372,7 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
         setReplyingTo(null);
       }
     } catch (error) {
-      console.error('Error sending GIF:', error);
+      console.error("Error sending GIF:", error);
     }
   };
 
@@ -356,13 +382,13 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
     try {
       // Send message with secret GIF as attachment
       const messageData = {
-        content: '🔮 Secret GIF', // Content to indicate it's a secret GIF
+        content: "🔮 Secret GIF", // Content to indicate it's a secret GIF
         receiverId: otherUserId,
         replyToId: replyingTo?.id,
         attachmentUrl: gifUrl,
         attachmentName: gifName,
-        attachmentType: 'image/gif',
-        attachmentSize: 'Unknown',
+        attachmentType: "image/gif",
+        attachmentSize: "Unknown",
       };
 
       const success = await sendMessage(messageData);
@@ -370,7 +396,7 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
         setReplyingTo(null);
       }
     } catch (error) {
-      console.error('Error sending secret GIF:', error);
+      console.error("Error sending secret GIF:", error);
     }
   };
 
@@ -380,13 +406,13 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
     try {
       // Send message with sticker as attachment
       const messageData = {
-        content: '🏷️ Sticker', // Simple content to indicate it's a sticker
+        content: "🏷️ Sticker", // Simple content to indicate it's a sticker
         receiverId: otherUserId,
         replyToId: replyingTo?.id,
         attachmentUrl: stickerUrl,
-        attachmentName: 'sticker.png',
-        attachmentType: 'image/png',
-        attachmentSize: 'Small',
+        attachmentName: "sticker.png",
+        attachmentType: "image/png",
+        attachmentSize: "Small",
       };
 
       const success = await sendMessage(messageData);
@@ -394,32 +420,35 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
         setReplyingTo(null);
       }
     } catch (error) {
-      console.error('Error sending sticker:', error);
+      console.error("Error sending sticker:", error);
     }
   };
 
   const handleVoiceRecorded = async (audioBlob: Blob, duration: number) => {
     if (!otherUserId || !currentUser) {
-      console.error('Missing user info for voice message');
+      console.error("Missing user info for voice message");
       return;
     }
 
     try {
       // Upload voice file
       const formData = new FormData();
-      formData.append('voice', audioBlob, `voice-${Date.now()}.webm`);
-      formData.append('duration', duration.toString());
+      formData.append("voice", audioBlob, `voice-${Date.now()}.webm`);
+      formData.append("duration", duration.toString());
 
       const token = getStoredToken();
       if (!token) {
-        console.error('No authentication token found');
+        console.error("No authentication token found");
         return;
       }
 
-      console.log('Uploading voice message...', { duration, blobSize: audioBlob.size });
+      console.log("Uploading voice message...", {
+        duration,
+        blobSize: audioBlob.size,
+      });
 
-      const uploadResponse = await fetch('/api/upload/voice', {
-        method: 'POST',
+      const uploadResponse = await fetch("/api/upload/voice", {
+        method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -428,61 +457,67 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
 
       if (!uploadResponse.ok) {
         const errorText = await uploadResponse.text();
-        console.error('Upload failed:', uploadResponse.status, errorText);
-        throw new Error(`Failed to upload voice message: ${uploadResponse.status} ${errorText}`);
+        console.error("Upload failed:", uploadResponse.status, errorText);
+        throw new Error(
+          `Failed to upload voice message: ${uploadResponse.status} ${errorText}`,
+        );
       }
 
       const { url } = await uploadResponse.json();
-      console.log('Voice message uploaded successfully:', url);
+      console.log("Voice message uploaded successfully:", url);
 
       // Send message with voice attachment
       const messageData = {
-        content: '', // Voice messages can have empty content
+        content: "", // Voice messages can have empty content
         receiverId: otherUserId,
         replyToId: replyingTo?.id,
         voiceMessageUrl: url,
         voiceMessageDuration: duration.toString(),
       };
 
-      console.log('Sending voice message data:', messageData);
+      console.log("Sending voice message data:", messageData);
       const success = await sendMessage(messageData);
       if (success) {
         setShowVoiceRecorder(false);
         setReplyingTo(null);
-        console.log('Voice message sent successfully');
+        console.log("Voice message sent successfully");
       } else {
-        console.error('Failed to send voice message');
+        console.error("Failed to send voice message");
       }
     } catch (error) {
-      console.error('Error sending voice message:', error);
+      console.error("Error sending voice message:", error);
     }
   };
 
   // Handle scroll to detect when user scrolls to top to load more messages
   const lastScrollCall = useRef<number>(0);
-  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
-    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+  const handleScroll = useCallback(
+    (e: React.UIEvent<HTMLDivElement>) => {
+      const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
 
-    // Throttle scroll events for better performance
-    if (Date.now() - lastScrollCall.current < 100) {
-      return;
-    }
-    lastScrollCall.current = Date.now();
+      // Throttle scroll events for better performance
+      if (Date.now() - lastScrollCall.current < 100) {
+        return;
+      }
+      lastScrollCall.current = Date.now();
 
-    // If user scrolls to within 200px of the top and there are more messages to load
-    if (scrollTop < 200 && hasMoreMessages && !isLoadingMore) {
-      // Store current scroll height to restore position after loading
-      const currentScrollHeight = scrollHeight;
+      // If user scrolls to within 200px of the top and there are more messages to load
+      if (scrollTop < 200 && hasMoreMessages && !isLoadingMore) {
+        // Store current scroll height to restore position after loading
+        const currentScrollHeight = scrollHeight;
 
-      loadMoreMessages().then(() => {
-        // Restore scroll position after new messages are loaded
-        if (messagesContainerRef.current) {
-          const newScrollHeight = messagesContainerRef.current.scrollHeight;
-          messagesContainerRef.current.scrollTop = newScrollHeight - currentScrollHeight;
-        }
-      });
-    }
-  }, [hasMoreMessages, isLoadingMore, loadMoreMessages]);
+        loadMoreMessages().then(() => {
+          // Restore scroll position after new messages are loaded
+          if (messagesContainerRef.current) {
+            const newScrollHeight = messagesContainerRef.current.scrollHeight;
+            messagesContainerRef.current.scrollTop =
+              newScrollHeight - currentScrollHeight;
+          }
+        });
+      }
+    },
+    [hasMoreMessages, isLoadingMore, loadMoreMessages],
+  );
 
   const handleLogout = () => {
     disconnect();
@@ -491,7 +526,13 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
   };
 
   const charCount = messageText.length;
-  const isDisabled = (!messageText.trim() && !selectedFile) || charCount > 5000 || !isConnected || !isAuthenticated || !otherUserId || isUploading;
+  const isDisabled =
+    (!messageText.trim() && !selectedFile) ||
+    charCount > 5000 ||
+    !isConnected ||
+    !isAuthenticated ||
+    !otherUserId ||
+    isUploading;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -505,11 +546,19 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
               </span>
             </div>
             <div>
-              <h2 className="font-semibold text-gray-900">{currentUser?.username}</h2>
+              <h2 className="font-semibold text-gray-900">
+                {currentUser?.username}
+              </h2>
               <div className="flex items-center space-x-2">
-                <div className={`w-2 h-2 rounded-full ${isConnected && isAuthenticated ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                <div
+                  className={`w-2 h-2 rounded-full ${isConnected && isAuthenticated ? "bg-green-500" : "bg-red-500"}`}
+                ></div>
                 <span className="text-sm text-gray-500">
-                  {isConnected && isAuthenticated ? 'Ready' : isConnected ? 'Connecting...' : 'Disconnected'}
+                  {isConnected && isAuthenticated
+                    ? "Ready"
+                    : isConnected
+                      ? "Connecting..."
+                      : "Disconnected"}
                 </span>
               </div>
             </div>
@@ -535,7 +584,7 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
 
       {/* Messages Area */}
       <main className="flex-1 max-w-4xl mx-auto">
-        <div 
+        <div
           ref={messagesContainerRef}
           onScroll={handleScroll}
           className="h-[calc(100vh-140px)] overflow-y-auto p-4 space-y-4"
@@ -553,14 +602,16 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
           {/* No more messages indicator */}
           {!hasMoreMessages && messages.length > 0 && (
             <div className="flex justify-center py-2">
-              <span className="text-xs text-gray-400">Beginning of conversation</span>
+              <span className="text-xs text-gray-400">
+                Beginning of conversation
+              </span>
             </div>
           )}
 
           {messages.map((message) => (
-            <MessageBubble 
-              key={message.id} 
-              message={message} 
+            <MessageBubble
+              key={message.id}
+              message={message}
               onReply={setReplyingTo}
               onEdit={editMessage}
               onDelete={deleteMessage}
@@ -599,7 +650,10 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
             </div>
           )}
 
-          <form onSubmit={handleSendMessage} className="flex flex-col space-y-4">
+          <form
+            onSubmit={handleSendMessage}
+            className="flex flex-col space-y-4"
+          >
             {/* File attachment preview */}
             {selectedFile && (
               <EnhancedFileAttachment
@@ -635,7 +689,11 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
                     onKeyDown={handleKeyDown}
                     onBlur={handleStopTyping}
                     className="w-full resize-none border border-gray-300 rounded-2xl px-4 py-3 pr-12 focus:ring-2 focus:ring-chat-primary focus:border-transparent transition-all max-h-32"
-                    placeholder={selectedFile ? "Add a message (optional)..." : "Type your message..."}
+                    placeholder={
+                      selectedFile
+                        ? "Add a message (optional)..."
+                        : "Type your message..."
+                    }
                     rows={1}
                     disabled={!isConnected}
                   />
@@ -645,7 +703,10 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
 
                 <div className="flex justify-between items-center mt-2 px-2">
                   <div className="text-xs text-gray-400">
-                    <span className={charCount > 5000 ? 'text-red-500' : ''}>{charCount}</span>/5000
+                    <span className={charCount > 5000 ? "text-red-500" : ""}>
+                      {charCount}
+                    </span>
+                    /5000
                   </div>
                   <div className="text-xs text-gray-400">
                     Press Enter to send, Shift+Enter for new line
@@ -666,7 +727,7 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
 
                 {/* GIF picker button */}
                 {!selectedFile && !showVoiceRecorder && (
-                  <GifPicker 
+                  <GifPicker
                     onGifSelect={handleGifSelect}
                     trigger={
                       <Button
@@ -683,7 +744,7 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
 
                 {/* Sticker picker button */}
                 {!selectedFile && !showVoiceRecorder && (
-                  <StickerPicker 
+                  <StickerPicker
                     onStickerSelect={handleStickerSelect}
                     trigger={
                       <Button
