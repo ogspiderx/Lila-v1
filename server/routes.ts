@@ -546,6 +546,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Secret GIFs endpoint
+  app.get("/api/secret-gifs", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith("Bearer ")) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const token = authHeader.substring(7);
+      jwt.verify(token, JWT_SECRET) as { userId: string };
+
+      const secretGifsDir = path.join(process.cwd(), 'client', 'src', 'secret_gifs');
+      
+      try {
+        const files = await fs.readdir(secretGifsDir);
+        const gifFiles = files.filter(file => 
+          file.toLowerCase().endsWith('.gif') ||
+          file.toLowerCase().endsWith('.webp') ||
+          file.toLowerCase().endsWith('.png') ||
+          file.toLowerCase().endsWith('.jpg') ||
+          file.toLowerCase().endsWith('.jpeg')
+        );
+
+        const secretGifs = await Promise.all(
+          gifFiles.map(async (file) => {
+            const filePath = path.join(secretGifsDir, file);
+            const stats = await fs.stat(filePath);
+            return {
+              name: file,
+              url: `/api/secret-gifs/file/${file}`,
+              size: stats.size
+            };
+          })
+        );
+
+        res.json(secretGifs);
+      } catch (error) {
+        // Directory doesn't exist or is empty
+        res.json([]);
+      }
+    } catch (error) {
+      console.error('Error fetching secret GIFs:', error);
+      res.status(500).json({ message: "Failed to fetch secret GIFs" });
+    }
+  });
+
+  // Secret GIF file serving route
+  app.get("/api/secret-gifs/file/:filename", (req, res) => {
+    const filename = req.params.filename;
+    const filePath = path.join(process.cwd(), 'client', 'src', 'secret_gifs', filename);
+    
+    res.sendFile(filePath, (err) => {
+      if (err) {
+        console.error('Error serving secret GIF:', err);
+        res.status(404).json({ message: "Secret GIF not found" });
+      }
+    });
+  });
+
   // File serving route
   app.get("/api/files/:filename", (req, res) => {
     const filename = req.params.filename;

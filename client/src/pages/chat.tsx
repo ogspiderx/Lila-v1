@@ -11,6 +11,7 @@ import { EnhancedFileAttachment, uploadFile } from "@/components/enhanced-file-a
 import { VoiceRecorder } from "@/components/voice-recorder";
 import { GifPicker } from "@/components/gif-picker";
 import { StickerPicker } from "@/components/sticker-picker";
+import { SecretGifPicker } from "@/components/secret-gif-picker";
 import { Users, LogOut, Wifi, Send, X, Mic, Image, Smile } from "lucide-react";
 
 interface ChatPageProps {
@@ -26,6 +27,7 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadedFileData, setUploadedFileData] = useState<{ url: string; name: string; type: string; size: string } | null>(null);
   const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
+  const [showSecretGifPicker, setShowSecretGifPicker] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const typingIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -201,6 +203,13 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
     const content = messageText.trim();
     if ((!content && !selectedFile) || (content && content.length > 5000) || !otherUserId || !isAuthenticated) return;
 
+    // Check for secret GIF trigger
+    if (content === "ineedthatrn") {
+      setShowSecretGifPicker(true);
+      setMessageText("");
+      return;
+    }
+
     const messageContent = content || (selectedFile ? "📎 File attachment" : "");
     let fileAttachment = uploadedFileData;
     
@@ -322,6 +331,30 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
       }
     } catch (error) {
       console.error('Error sending GIF:', error);
+    }
+  };
+
+  const handleSecretGifSelect = async (gifUrl: string, gifName: string) => {
+    if (!otherUserId || !currentUser) return;
+
+    try {
+      // Send message with secret GIF as attachment
+      const messageData = {
+        content: '🔮 Secret GIF', // Content to indicate it's a secret GIF
+        receiverId: otherUserId,
+        replyToId: replyingTo?.id,
+        attachmentUrl: gifUrl,
+        attachmentName: gifName,
+        attachmentType: 'image/gif',
+        attachmentSize: 'Unknown',
+      };
+
+      const success = await sendMessage(messageData);
+      if (success) {
+        setReplyingTo(null);
+      }
+    } catch (error) {
+      console.error('Error sending secret GIF:', error);
     }
   };
 
@@ -694,6 +727,13 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
           </div>
         </div>
       )}
+
+      {/* Secret GIF Picker Dialog */}
+      <SecretGifPicker
+        isOpen={showSecretGifPicker}
+        onClose={() => setShowSecretGifPicker(false)}
+        onGifSelect={handleSecretGifSelect}
+      />
     </div>
   );
 }
