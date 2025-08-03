@@ -29,32 +29,35 @@ export function SecretGifPicker({ isOpen, onClose, onGifSelect }: SecretGifPicke
   }, [isOpen]);
 
   const fetchSecretGifs = async () => {
+  try {
+    // Return hardcoded list of secret GIFs since directory listing might not work
     setLoading(true);
     setError(null);
-    try {
-      const token = localStorage.getItem('chat_token');
+    const token = localStorage.getItem('chat_token');
       if (!token) {
         throw new Error('No authentication token found');
       }
-      
+
       const response = await fetch('/api/secret-gifs', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to load secret GIFs');
       }
       const gifs = await response.json();
       setSecretGifs(gifs);
-    } catch (err) {
-      console.error('Error fetching secret GIFs:', err);
-      setError('Could not load secret GIFs');
-    } finally {
-      setLoading(false);
-    }
-  };
+    
+  } catch (error) {
+    console.error('Error fetching secret GIFs:', error);
+    setError('Could not load secret GIFs');
+    setSecretGifs([]); // Return empty array instead of throwing
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleGifSelect = (gif: SecretGif) => {
     onGifSelect(gif.url, gif.name);
@@ -142,7 +145,7 @@ export function SecretGifPicker({ isOpen, onClose, onGifSelect }: SecretGifPicke
                       aspectRatio="square"
                     />
                   </div>
-                  
+
                   <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 flex items-center justify-center">
                     <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
                       <Button

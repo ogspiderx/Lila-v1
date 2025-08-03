@@ -28,6 +28,7 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
   const [uploadedFileData, setUploadedFileData] = useState<{ url: string; name: string; type: string; size: string } | null>(null);
   const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
   const [showSecretGifPicker, setShowSecretGifPicker] = useState(false);
+  const [forceUpdate, setForceUpdate] = useState(0);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const typingIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -141,12 +142,10 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
 
   useEffect(() => {
     // Only auto-scroll when typing status changes (someone starts/stops typing)
-    // Don't auto-scroll on regular message updates to preserve user's scroll position
     if (typingStatus && typingStatus.isTyping) {
       scrollToBottom(); // Auto-scroll only if near bottom when someone is typing
     }
-    console.log('CHAT PAGE: Messages or typing changed, current messages:', messages.length);
-  }, [typingStatus]); // Removed messages and forceUpdate from dependencies
+  }, [typingStatus?.isTyping]); // Only depend on the typing boolean, not the entire object
 
   // Auto-scroll only when new messages arrive and user is near bottom
   useEffect(() => {
@@ -186,9 +185,7 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
         messagesContainerRef.current.dataset.seenCount = seenMessageCount.toString();
       }
     }
-
-    setForceUpdate(prev => prev + 1);
-  }, [messages]);
+  }, [messages.length]); // Only depend on message count, not the entire messages array
 
   // Global keyboard listener for "/" key to focus chat input
   useEffect(() => {
