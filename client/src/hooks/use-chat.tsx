@@ -273,32 +273,21 @@ export function useChat() {
 
   const sendMessage = useCallback(
     async (
-      content: string,
-      receiverId: string,
-      replyToId?: string,
-      fileAttachment?: {
-        url: string;
-        name: string;
-        type: string;
-        size: string;
-      } | null,
+      messageData: {
+        content: string;
+        receiverId: string;
+        replyToId?: string;
+        attachmentUrl?: string;
+        attachmentName?: string;
+        attachmentType?: string;
+        attachmentSize?: string;
+        voiceMessageUrl?: string;
+        voiceMessageDuration?: string;
+      }
     ) => {
       try {
         const token = getStoredToken();
-        if (!token) return;
-
-        const messageData: any = {
-          content,
-          receiverId,
-          replyToId,
-        };
-
-        if (fileAttachment) {
-          messageData.attachmentUrl = fileAttachment.url;
-          messageData.attachmentName = fileAttachment.name;
-          messageData.attachmentType = fileAttachment.type;
-          messageData.attachmentSize = fileAttachment.size;
-        }
+        if (!token) return false;
 
         const response = await fetch("/api/messages", {
           method: "POST",
@@ -314,11 +303,14 @@ export function useChat() {
           console.log("Message sent successfully");
           // Immediately poll for updates
           pollMessages();
+          return true;
         } else {
           console.error("Failed to send message");
+          return false;
         }
       } catch (error) {
         console.error("Error sending message:", error);
+        return false;
       }
     },
     [pollMessages],

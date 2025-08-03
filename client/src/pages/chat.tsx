@@ -206,7 +206,15 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
       setIsUploading(false);
     }
     
-    sendMessage(messageContent, otherUserId, replyingTo?.id, fileAttachment);
+    sendMessage({
+      content: messageContent,
+      receiverId: otherUserId,
+      replyToId: replyingTo?.id,
+      attachmentUrl: fileAttachment?.url,
+      attachmentName: fileAttachment?.name,
+      attachmentType: fileAttachment?.type,
+      attachmentSize: fileAttachment?.size,
+    });
     setMessageText("");
     setReplyingTo(null);
     setSelectedFile(null);
@@ -277,7 +285,10 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
   };
 
   const handleVoiceRecorded = async (audioBlob: Blob, duration: number) => {
-    if (!otherUserId || !currentUser) return;
+    if (!otherUserId || !currentUser) {
+      console.error('Missing user info for voice message');
+      return;
+    }
 
     try {
       // Upload voice file
@@ -286,6 +297,13 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
       formData.append('duration', duration.toString());
 
       const token = getStoredToken();
+      if (!token) {
+        console.error('No authentication token found');
+        return;
+      }
+
+      console.log('Uploading voice message...', { duration, blobSize: audioBlob.size });
+
       const uploadResponse = await fetch('/api/upload/voice', {
         method: 'POST',
         headers: {
@@ -295,10 +313,13 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
       });
 
       if (!uploadResponse.ok) {
-        throw new Error('Failed to upload voice message');
+        const errorText = await uploadResponse.text();
+        console.error('Upload failed:', uploadResponse.status, errorText);
+        throw new Error(`Failed to upload voice message: ${uploadResponse.status} ${errorText}`);
       }
 
       const { url } = await uploadResponse.json();
+      console.log('Voice message uploaded successfully:', url);
 
       // Send message with voice attachment
       const messageData = {
@@ -309,10 +330,14 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
         voiceMessageDuration: duration.toString(),
       };
 
+      console.log('Sending voice message data:', messageData);
       const success = await sendMessage(messageData);
       if (success) {
         setShowVoiceRecorder(false);
         setReplyingTo(null);
+        console.log('Voice message sent successfully');
+      } else {
+        console.error('Failed to send voice message');
       }
     } catch (error) {
       console.error('Error sending voice message:', error);

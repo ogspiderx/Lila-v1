@@ -524,8 +524,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "No voice file uploaded" });
       }
 
-      // Validate that it's an audio file
-      if (!req.file.mimetype.startsWith('audio/')) {
+      // Validate that it's an audio file (WebM might come as video/webm but is valid for audio)
+      const isAudioFile = req.file.mimetype.startsWith('audio/') || 
+                         req.file.mimetype === 'video/webm' || 
+                         req.file.originalname.toLowerCase().endsWith('.webm');
+      
+      if (!isAudioFile) {
         return res.status(400).json({ message: "File must be an audio file" });
       }
 
