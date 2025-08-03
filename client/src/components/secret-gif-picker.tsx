@@ -74,7 +74,7 @@ export function SecretGifPicker({ isOpen, onClose, onGifSelect }: SecretGifPicke
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[80vh] p-0">
+      <DialogContent className="max-w-4xl max-h-[80vh] p-0 flex flex-col">
         <DialogHeader className="p-6 pb-4 border-b">
           <div className="flex items-center justify-between">
             <DialogTitle className="text-xl font-semibold text-purple-600">
@@ -94,7 +94,7 @@ export function SecretGifPicker({ isOpen, onClose, onGifSelect }: SecretGifPicke
           </p>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 p-6">
+        <ScrollArea className="flex-1 p-6 max-h-96 overflow-y-auto">
           {loading && (
             <div className="flex items-center justify-center h-40">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
@@ -129,7 +129,7 @@ export function SecretGifPicker({ isOpen, onClose, onGifSelect }: SecretGifPicke
           )}
 
           {!loading && !error && secretGifs.length > 0 && (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pb-4">
               {secretGifs.map((gif, index) => (
                 <div
                   key={index}
