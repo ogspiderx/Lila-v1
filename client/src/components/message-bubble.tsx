@@ -132,7 +132,7 @@ export function MessageBubble({ message, onReply, onEdit, onDelete, onReaction }
       )}
 
       <div className={`flex-1 ${isSent ? 'flex flex-col items-end' : ''}`}>
-        <div className={`${isSent ? 'bg-sent-message' : 'bg-received-message'} rounded-2xl ${isSent ? 'rounded-tr-md' : 'rounded-tl-md'} px-4 py-3 ${message.attachmentUrl || message.voiceMessageUrl ? 'max-w-sm' : 'max-w-xs'} relative`}>
+        <div className={`${isSent ? 'bg-sent-message' : 'bg-received-message'} rounded-2xl ${isSent ? 'rounded-tr-md' : 'rounded-tl-md'} ${message.attachmentUrl || message.voiceMessageUrl ? 'p-2' : 'px-4 py-3'} ${message.attachmentUrl || message.voiceMessageUrl ? 'max-w-md' : 'max-w-xs'} relative`}>
           {/* Replied message preview */}
           {message.repliedMessage && (
             <div className="mb-2 p-2 bg-gray-100 dark:bg-gray-700 rounded-lg border-l-2 border-gray-300 dark:border-gray-500 text-sm">
@@ -180,7 +180,7 @@ export function MessageBubble({ message, onReply, onEdit, onDelete, onReaction }
             <>
               {/* Show text content only if there's actual content or no voice message */}
               {(message.content && message.content.trim()) && (
-                <div className="text-gray-900 break-words">
+                <div className={`text-gray-900 break-words ${message.attachmentUrl || message.voiceMessageUrl ? 'px-2 py-1' : ''}`}>
                   {(() => {
                     const MAX_LENGTH = 300;
                     const isLongMessage = message.content.length > MAX_LENGTH;
@@ -224,13 +224,13 @@ export function MessageBubble({ message, onReply, onEdit, onDelete, onReaction }
                   voiceUrl={message.voiceMessageUrl}
                   duration={parseInt(message.voiceMessageDuration || '0')}
                   variant={isSent ? 'sent' : 'received'}
-                  className="mt-2"
+                  className={`${message.content && message.content.trim() ? 'mt-2' : ''} mx-2`}
                 />
               )}
 
               {/* File attachment display */}
               {message.attachmentUrl && message.attachmentName && message.attachmentType && message.attachmentSize && (
-                <div className="mt-2">
+                <div className={message.content && message.content.trim() ? 'mt-2' : ''}>
                   <FileDisplay
                     attachment={{
                       url: message.attachmentUrl,
