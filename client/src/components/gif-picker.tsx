@@ -10,31 +10,42 @@ interface GifPickerProps {
   trigger?: React.ReactNode;
 }
 
-interface GifData {
+interface TenorGifData {
   id: string;
   title: string;
-  images: {
-    fixed_height: {
+  media_formats: {
+    gif: {
       url: string;
-      width: string;
-      height: string;
+      dims: number[];
+      duration: number;
+      size: number;
     };
-    preview_gif: {
+    tinygif: {
       url: string;
+      dims: number[];
+      duration: number;
+      size: number;
+    };
+    mp4: {
+      url: string;
+      dims: number[];
+      duration: number;
+      size: number;
     };
   };
+  content_description: string;
 }
 
 export function GifPicker({ onGifSelect, trigger }: GifPickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [gifs, setGifs] = useState<GifData[]>([]);
+  const [gifs, setGifs] = useState<TenorGifData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
 
-  // For demo purposes, we'll use a free Giphy API key or show placeholder
+  // Tenor API key - free public key for demo
   // In production, you'd want to use environment variables
-  const GIPHY_API_KEY = "GlVGYHkr3WSBnllca54iNt0yFbjz7L65"; // Free public API key for demo
+  const TENOR_API_KEY = "AIzaSyAyimkuYQYF_FXVALexPuGQctUWRURdCYQ"; // Google's free public API key for demo
 
   const searchGifs = async (query: string) => {
     if (!query.trim()) {
@@ -48,18 +59,18 @@ export function GifPicker({ onGifSelect, trigger }: GifPickerProps) {
 
     try {
       const response = await fetch(
-        `https://api.giphy.com/v1/gifs/search?api_key=${GIPHY_API_KEY}&q=${encodeURIComponent(query)}&limit=20&rating=g`
+        `https://tenor.googleapis.com/v2/search?key=${TENOR_API_KEY}&q=${encodeURIComponent(query)}&limit=20&media_filter=gif&contentfilter=high`
       );
       
       if (response.ok) {
         const data = await response.json();
-        setGifs(data.data || []);
+        setGifs(data.results || []);
       } else {
-        console.error('Failed to fetch GIFs');
+        console.error('Failed to fetch GIFs from Tenor');
         setGifs([]);
       }
     } catch (error) {
-      console.error('Error fetching GIFs:', error);
+      console.error('Error fetching GIFs from Tenor:', error);
       setGifs([]);
     } finally {
       setIsLoading(false);
@@ -70,24 +81,28 @@ export function GifPicker({ onGifSelect, trigger }: GifPickerProps) {
     setIsLoading(true);
     try {
       const response = await fetch(
-        `https://api.giphy.com/v1/gifs/trending?api_key=${GIPHY_API_KEY}&limit=20&rating=g`
+        `https://tenor.googleapis.com/v2/featured?key=${TENOR_API_KEY}&limit=20&media_filter=gif&contentfilter=high`
       );
       
       if (response.ok) {
         const data = await response.json();
-        setGifs(data.data || []);
+        setGifs(data.results || []);
         setHasSearched(true);
       }
     } catch (error) {
-      console.error('Error fetching trending GIFs:', error);
+      console.error('Error fetching featured GIFs from Tenor:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleGifSelect = (gif: GifData) => {
-    onGifSelect(gif.images.fixed_height.url);
-    setIsOpen(false);
+  const handleGifSelect = (gif: TenorGifData) => {
+    // Use the gif format URL for the best quality
+    const gifUrl = gif.media_formats.gif?.url || gif.media_formats.tinygif?.url;
+    if (gifUrl) {
+      onGifSelect(gifUrl);
+      setIsOpen(false);
+    }
   };
 
   const handleSearch = (e: React.FormEvent) => {
@@ -146,8 +161,8 @@ export function GifPicker({ onGifSelect, trigger }: GifPickerProps) {
                   className="relative aspect-square overflow-hidden rounded-lg hover:opacity-80 transition-opacity border border-gray-200 dark:border-gray-700"
                 >
                   <img
-                    src={gif.images.preview_gif.url}
-                    alt={gif.title}
+                    src={gif.media_formats.tinygif?.url || gif.media_formats.gif?.url}
+                    alt={gif.content_description || gif.title}
                     className="w-full h-full object-cover"
                     loading="lazy"
                   />

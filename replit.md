@@ -58,6 +58,16 @@ This is a modern, full-stack real-time chat application that demonstrates the po
 - Increased chat character limit from 500 to 5000 characters for longer messages
 - Enhanced file type detection with appropriate icons (music, video, archive, code, etc.)
 
+**Voice Messages and GIF Features (August 3, 2025):**
+- Fixed critical voice messaging bugs including authentication token issues and database storage problems
+- Resolved empty message bubble issue for voice messages by fixing storage layer and schema mapping
+- Implemented GIF picker component with search functionality using Tenor API (Google's GIF platform)
+- Added GIF message support to chat interface with purple GIF button
+- GIFs are sent as image attachments and display properly in message bubbles
+- Enhanced error handling and debugging across voice message workflow
+- Updated message schema to support voice message fields (voiceMessageUrl, voiceMessageDuration)
+- Used Tenor API instead of Giphy for better performance and reliability
+
 ## System Architecture
 
 ### Frontend Architecture
