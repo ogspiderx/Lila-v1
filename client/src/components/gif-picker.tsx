@@ -59,7 +59,7 @@ export function GifPicker({ onGifSelect, trigger }: GifPickerProps) {
 
     try {
       const response = await fetch(
-        `https://tenor.googleapis.com/v2/search?key=${TENOR_API_KEY}&q=${encodeURIComponent(query)}&limit=20&media_filter=gif&contentfilter=high`
+        `https://tenor.googleapis.com/v2/search?key=${TENOR_API_KEY}&q=${encodeURIComponent(query)}&limit=20&media_filter=gif`
       );
       
       if (response.ok) {
@@ -81,7 +81,7 @@ export function GifPicker({ onGifSelect, trigger }: GifPickerProps) {
     setIsLoading(true);
     try {
       const response = await fetch(
-        `https://tenor.googleapis.com/v2/featured?key=${TENOR_API_KEY}&limit=20&media_filter=gif&contentfilter=high`
+        `https://tenor.googleapis.com/v2/featured?key=${TENOR_API_KEY}&limit=20&media_filter=gif`
       );
       
       if (response.ok) {
