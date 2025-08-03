@@ -44,7 +44,6 @@ export default function ChatPage({ onLogout }: ChatPageProps) {
     typingStatus,
     hasMoreMessages,
     isLoadingMore,
-    forceUpdate,
     connect,
     disconnect,
     sendMessage,
